@@ -1,0 +1,16 @@
+# Beam 2 is cut 720 ms after beam 1 (1 km/h): the measure is dropped after 300 ms.
+name: 'Measure aborted after 300 ms'
+version: 1
+author: 'Smart Football team'
+
+steps:
+  - wait-serial: '[BOOT]'
+  - set-control:
+      part-id: beam1
+      name: ballSpeedKmh
+      value: 1
+  - set-control:
+      part-id: beam1
+      name: shoot
+      value: 1
+  - wait-serial: 'mesure abandonnée'

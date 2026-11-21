@@ -1,0 +1,23 @@
+{
+  "name": "Piezo sensor (one per zone)",
+  "author": "Smart Football team",
+  "pins": ["VCC", "GND", "OUT"],
+  "controls": [
+    {
+      "id": "peakVolts",
+      "label": "Peak amplitude (V)",
+      "type": "range",
+      "min": 0,
+      "max": 3.3,
+      "step": 0.05
+    },
+    {
+      "id": "trigger",
+      "label": "Impact (0 -> 1)",
+      "type": "range",
+      "min": 0,
+      "max": 1,
+      "step": 1
+    }
+  ]
+}

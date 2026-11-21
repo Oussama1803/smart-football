@@ -1,0 +1,17 @@
+[wokwi]
+version = 1
+firmware = '.pio/build/esp32dev/firmware.bin'
+elf = '.pio/build/esp32dev/firmware.elf'
+
+# Custom chips, built by chips/build.sh (the .wasm and .json are committed).
+[[chip]]
+name = 'ir-break-beam'
+binary = 'chips/ir-break-beam.chip.wasm'
+
+[[chip]]
+name = 'piezo-sensor'
+binary = 'chips/piezo-sensor.chip.wasm'
+
+[[chip]]
+name = 'fsr-sensor'
+binary = 'chips/fsr-sensor.chip.wasm'

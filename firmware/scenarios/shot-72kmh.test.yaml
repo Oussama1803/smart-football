@@ -1,0 +1,32 @@
+# Required scenario: one shot at 72 km/h (dt = 10 ms), impact in zone 3, check 72.0 on serial.
+# Run from firmware/ with: wokwi-cli . --scenario scenarios/shot-72kmh.test.yaml
+name: 'Shot at 72 km/h'
+version: 1
+author: 'Smart Football team'
+
+steps:
+  - wait-serial: '[BOOT]'
+  - set-control:
+      part-id: fsr1
+      name: pressure
+      value: 60
+  - set-control:
+      part-id: piezo3
+      name: peakVolts
+      value: 2.0
+  - set-control:
+      part-id: beam1
+      name: ballSpeedKmh
+      value: 72
+  # Beam 1 is cut now; beam 2 follows 10 ms later (D / v = 0.20 m / 20 m/s).
+  - set-control:
+      part-id: beam1
+      name: shoot
+      value: 1
+  # Impact on the zone 3 piezo, 2 ms after beam 2 (inside the impact window).
+  - delay: 12ms
+  - set-control:
+      part-id: piezo3
+      name: trigger
+      value: 1
+  - wait-serial: '"ball_speed_kmh":72.0'

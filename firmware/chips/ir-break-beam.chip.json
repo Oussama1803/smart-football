@@ -1,0 +1,23 @@
+{
+  "name": "IR break-beam (emitter + receiver)",
+  "author": "Smart Football team",
+  "pins": ["VCC", "GND", "OUT", "SYNC"],
+  "controls": [
+    {
+      "id": "ballSpeedKmh",
+      "label": "Ball speed (km/h)",
+      "type": "range",
+      "min": 0.5,
+      "max": 800,
+      "step": 0.1
+    },
+    {
+      "id": "shoot",
+      "label": "Shoot (0 -> 1)",
+      "type": "range",
+      "min": 0,
+      "max": 1,
+      "step": 1
+    }
+  ]
+}

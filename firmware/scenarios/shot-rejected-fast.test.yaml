@@ -1,0 +1,16 @@
+# SEC2: dt = 1 ms (720 km/h) is rejected, with a message on the status channel.
+name: 'Shot rejected, too fast'
+version: 1
+author: 'Smart Football team'
+
+steps:
+  - wait-serial: '[BOOT]'
+  - set-control:
+      part-id: beam1
+      name: ballSpeedKmh
+      value: 720
+  - set-control:
+      part-id: beam1
+      name: shoot
+      value: 1
+  - wait-serial: 'vitesse rejetée'
