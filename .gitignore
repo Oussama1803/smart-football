@@ -1,0 +1,32 @@
+# Secrets (never commit)
+.env
+*.pem
+*.key
+firmware/include/secrets.h
+
+# PlatformIO
+.pio/
+.vscode/
+firmware/.pio/
+firmware-keeper/.pio/
+
+# Wokwi custom chips build output
+chips/**/*.wasm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Docker volumes and local data
+infra/data/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
