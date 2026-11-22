@@ -1,0 +1,7 @@
+# Shell scripts run on the Linux VPS: always keep LF line endings, even on Windows checkouts.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+# Compiled Wokwi chips are binary.
+*.wasm binary
