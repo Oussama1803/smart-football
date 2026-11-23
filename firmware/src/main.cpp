@@ -217,7 +217,8 @@ void loop() {
   BeamEdge edge;
   while (pop_edge(&edge)) {
     uint32_t delta_us = 0;
-    handle_tracker_event(tracker_on_beam(&tracker, edge.beam, edge.t_us, &delta_us), delta_us);
+    const TrackerEvent event = tracker_on_beam(&tracker, edge.beam, edge.t_us, &delta_us);
+    handle_tracker_event(event, delta_us);
   }
   handle_tracker_event(tracker_poll(&tracker, micros()), 0);
 
