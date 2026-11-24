@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Football - Tableau de Bord Télémétrie</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <span style="font-size: 2rem;">⚽</span>
+        <div>
+          <h1>Smart Football</h1>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Cloud, Données & Télémétrie (Étapes 5 & 6)</div>
+        </div>
+        <span class="brand-badge">ESI 5A Cybersécurité</span>
+      </div>
+
+      <div class="system-status">
+        <div class="status-pill" title="Statut de l'API FastAPI">
+          <div class="dot" id="status-api-dot"></div>
+          <span>API: <strong id="status-api-text">Vérification...</strong></span>
+        </div>
+        <div class="status-pill" title="Statut PostgreSQL">
+          <div class="dot" id="status-db-dot"></div>
+          <span>PostgreSQL: <strong id="status-db-text">Vérification...</strong></span>
+        </div>
+        <div class="status-pill" title="Abonné Mosquitto MQTT">
+          <div class="dot" id="status-mqtt-dot"></div>
+          <span>Mosquitto: <strong id="status-mqtt-text">En écoute</strong></span>
+        </div>
+        <div class="status-pill" title="Exigence ENF1 (Latence tir < 2s)">
+          <span>ENF1: <strong id="status-enf1-text" class="latency-good">&lt; 2.0 s</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Classification Banner (Règle du brief Alae) -->
+    <div class="classification-banner">
+      <div style="font-weight: 600;">Classification des données de télémétrie :</div>
+      <div class="classification-tags">
+        <span class="tag tag-real">🟢 Mesure réelle (Barrières IR, Piézoélectrique)</span>
+        <span class="tag tag-raw">🟡 Valeur brute ADC relative (Pression FSR & Intensité Piézo - non exprimée en Newtons)</span>
+        <span class="tag tag-demo">🔵 Données de simulation Wokwi</span>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="filter-group">
+        <label for="session-select" style="font-size: 0.88rem; color: var(--text-muted);">Séance :</label>
+        <select id="session-select">
+          <option value="">Toutes les séances</option>
+        </select>
+        <button id="btn-toggle-zones" title="Basculer vers la vue 9 zones">Vue 4 zones (Prototype)</button>
+      </div>
+
+      <div class="filter-group">
+        <button id="btn-refresh" class="primary">Rafraîchir</button>
+        <select id="auto-refresh-select">
+          <option value="2000">Auto 2s</option>
+          <option value="5000" selected>Auto 5s</option>
+          <option value="0">Pause</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Nombre total de tirs</div>
+        <div class="kpi-value" id="kpi-total-shots">0</div>
+        <div class="kpi-subtext" id="kpi-shots-on-target">0 cadrés / 0 hors-cadre</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Taux de précision</div>
+        <div class="kpi-value"><span id="kpi-accuracy">0.0</span><span class="kpi-unit">%</span></div>
+        <div class="kpi-subtext">Tirs touchant une zone (≠ none)</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Vitesse moyenne</div>
+        <div class="kpi-value"><span id="kpi-avg-speed">0.0</span><span class="kpi-unit">km/h</span></div>
+        <div class="kpi-subtext">Mesure IR break-beam (5-150 km/h)</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Vitesse maximale</div>
+        <div class="kpi-value"><span id="kpi-max-speed">0.0</span><span class="kpi-unit">km/h</span></div>
+        <div class="kpi-subtext">Record de la séance</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Pression relative moy.</div>
+        <div class="kpi-value" id="kpi-avg-pressure">0</div>
+        <div class="kpi-subtext">ADC brut FSR [0-4095] (sans unité N)</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Intensité relative moy.</div>
+        <div class="kpi-value" id="kpi-avg-impact">0</div>
+        <div class="kpi-subtext">ADC brut Piézo [0-4095]</div>
+      </div>
+    </div>
+
+    <!-- Analytics & Goal Visualizer -->
+    <div class="analytics-grid">
+      <!-- Interactive Goal Visualization -->
+      <div class="card">
+        <div class="card-title">
+          <span>Répartition des tirs dans le but</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="goal-active-mode">4 Zones</span>
+        </div>
+
+        <div class="goal-container">
+          <div class="goal-wrapper">
+            <!-- Goal Grid (4 zones prototype, dynamically supports 9 zones) -->
+            <div class="goal-posts" id="goal-grid">
+              <div class="goal-zone" id="zone-upper_left" data-zone="upper_left">
+                <div class="zone-label">Haut Gauche</div>
+                <div class="zone-hits" id="hits-upper_left">0</div>
+                <div class="zone-pct" id="pct-upper_left">0%</div>
+              </div>
+              <div class="goal-zone" id="zone-upper_right" data-zone="upper_right">
+                <div class="zone-label">Haut Droit</div>
+                <div class="zone-hits" id="hits-upper_right">0</div>
+                <div class="zone-pct" id="pct-upper_right">0%</div>
+              </div>
+              <div class="goal-zone" id="zone-lower_left" data-zone="lower_left">
+                <div class="zone-label">Bas Gauche</div>
+                <div class="zone-hits" id="hits-lower_left">0</div>
+                <div class="zone-pct" id="pct-lower_left">0%</div>
+              </div>
+              <div class="goal-zone" id="zone-lower_right" data-zone="lower_right">
+                <div class="zone-label">Bas Droit</div>
+                <div class="zone-hits" id="hits-lower_right">0</div>
+                <div class="zone-pct" id="pct-lower_right">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hors cadre / Sans impact (none) -->
+          <div class="missed-zone-bar">
+            <span>🚫 Hors cadre / Tir sans impact détecté (<code>none</code>) :</span>
+            <span><strong id="hits-none">0</strong> tirs (<span id="pct-none">0%</span>)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Comparison & Goalkeeper Module -->
+      <div class="card">
+        <div class="card-title">
+          <span>Comparaison entre séances</span>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <select id="comp-session-a" style="flex: 1;">
+            <option value="">Choisir Séance A...</option>
+          </select>
+          <select id="comp-session-b" style="flex: 1;">
+            <option value="">Choisir Séance B...</option>
+          </select>
+        </div>
+
+        <div class="comparison-container" id="comparison-display">
+          <div class="comparison-box" id="box-session-a">
+            <h4>Séance A</h4>
+            <div class="comp-metric"><span>Tirs totaux :</span><strong id="comp-a-shots">-</strong></div>
+            <div class="comp-metric"><span>Précision :</span><strong id="comp-a-acc">-</strong></div>
+            <div class="comp-metric"><span>Vitesse moy. :</span><strong id="comp-a-spd">-</strong></div>
+            <div class="comp-metric"><span>Pression ADC :</span><strong id="comp-a-pres">-</strong></div>
+          </div>
+          <div class="comparison-box" id="box-session-b">
+            <h4>Séance B</h4>
+            <div class="comp-metric"><span>Tirs totaux :</span><strong id="comp-b-shots">-</strong></div>
+            <div class="comp-metric"><span>Précision :</span><strong id="comp-b-acc">-</strong></div>
+            <div class="comp-metric"><span>Vitesse moy. :</span><strong id="comp-b-spd">-</strong></div>
+            <div class="comp-metric"><span>Pression ADC :</span><strong id="comp-b-pres">-</strong></div>
+          </div>
+        </div>
+
+        <!-- Keeper Extension (Étape 11) -->
+        <div style="margin-top: 20px;">
+          <div class="card-title" style="margin-bottom: 8px; font-size: 0.95rem;">
+            <span>Extension Gardien (MPU6050)</span>
+            <span class="badge badge-zone" id="keeper-badge">En attente</span>
+          </div>
+          <div class="keeper-status-box">
+            <div style="font-size: 0.82rem; color: var(--text-muted);">
+              Mesure les accélérations, rotations et déplacements du gardien de but.
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-top: 8px;">
+              <span>Dispositif : <code>keeper-esp32-01</code></span>
+              <span>Statut : <span id="keeper-status-text">Non connecté (Étape 11)</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Shots Table -->
+    <div class="card">
+      <div class="card-title">
+        <span>Historique récent des tirs</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);" id="shots-count-label">0 affichés</span>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Horodatage</th>
+              <th>Appareil</th>
+              <th>Séance</th>
+              <th>Vitesse (km/h)</th>
+              <th>Zone d'impact</th>
+              <th>Pression (ADC)</th>
+              <th>Intensité (ADC)</th>
+              <th>Latence ENF1</th>
+            </tr>
+          </thead>
+          <tbody id="shots-table-body">
+            <tr>
+              <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                Aucun tir enregistré pour le moment.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Smart Football &bull; Module Gestion des Systèmes Embarqués &bull; Équipe : Oussama, Mohamed, Saad, Alae.
+    </footer>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
