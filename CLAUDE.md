@@ -32,6 +32,10 @@ NON vérifié, ne pas dire que ça marche :
 - Pas encore testés : noms de broches du `diagram.json` (`esp:VP`, `esp:TX`), seuil piézo 300 et échelle ADC, buzzer (LEDC avec `espressif32@6.9.0`), port 8883 depuis Wokwi.
 - C'est du travail sur les étapes de Saad : ne pas s'y enfoncer sans l'accord d'Oussama.
 
+Branche `feature/step5-cloud-backend` (Alae, étape 5) : compose (db, mosquitto, backend, nginx), API FastAPI, 53 tests pytest qui passent (lancés le 24 novembre). Pas encore fusionnée dans `main`. Points de sécurité relevés dans `docs/rbac.md`, partie 8.
+
+Étape 8b, ajouté le 24 novembre : `docs/rbac.md` (rôles, droits, lien séance-joueur, exemple FastAPI testé, ACL Mosquitto testée sur un Mosquitto 2.0.18 local, droits PostgreSQL) et `infra/security/db-roles.sql` (testé sur PostgreSQL 16 jetable). Ni l'un ni l'autre n'a été essayé dans les conteneurs du compose.
+
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
 
 ## Prochaines actions pour la partie d'Oussama
@@ -39,7 +43,7 @@ Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novemb
 1. Étape 8b : rôles de l'API, droits MQTT, utilisateur de base à privilèges minimaux, UFW sur le VPS, sauvegardes, tests T1 à T8 avec captures. Dépend du `compose.yaml` et de l'API d'Alae (pas encore là).
 2. Étape 10 : Prometheus et Grafana, après le compose d'Alae.
 3. Étape 12b : démo et rapport. À la fin, Oussama veut une page interactive de l'architecture (pas avant).
-4. Optionnel, si Oussama confirme : `docs/rbac.md` (rôles, tableau des droits, lien sessions-joueurs, exemple FastAPI).
+4. `docs/rbac.md` écrit : faire valider le tableau des droits et transmettre la partie 8 à Alae et Mohamed.
 
 ## Décisions à faire valider par l'équipe (pas à Oussama seul)
 
@@ -50,7 +54,7 @@ Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novemb
 - FSR lu au passage de la barrière 2, pas à la frappe exacte.
 - Les `.wasm` des chips sont versionnés dans `firmware/chips/`.
 - La passerelle privée de Wokwi est payante : un VPS public est indispensable pour le broker.
-- MQTT 3.1.1 : une publication refusée par les droits est ignorée sans erreur. À tester avec Mosquitto.
+- MQTT : une publication refusée par l'ACL est ignorée sans erreur (`mosquitto_pub` sort avec 0). Vérifié sur Mosquitto 2.0.18 local, pas encore sur le broker du compose.
 - Docker contourne UFW sur les ports qu'il publie : vérifier avec un scan depuis l'extérieur.
 
 ## Spécificités du PC d'Oussama (Windows)
