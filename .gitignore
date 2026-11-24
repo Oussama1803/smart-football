@@ -33,3 +33,10 @@ Thumbs.db
 
 # Claude Code notes (local only)
 CLAUDE.md
+
+# TLS certificates and Mosquitto credentials (step 8a)
+infra/mosquitto/certs/
+infra/mosquitto/passwords*
+*.crt
+*.csr
+*.srl
