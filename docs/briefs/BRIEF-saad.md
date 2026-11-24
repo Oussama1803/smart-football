@@ -1,5 +1,19 @@
 # Brief Saad : embarqué (étapes 2, 3, 4, 11)
 
+## État vérifié (24 novembre 2026)
+
+Les barrières IR et les quatre piézos ont des contextes séparés par instance.
+Leurs WASM réels passent les tests déterministes; le calcul de vitesse, les
+zones, le JSON et la file de 20 tirs passent les tests PlatformIO natifs.
+Les profils ESP32 hors ligne, réseau/TLS et watchdog compilent. Le projet keeper
+MPU6050 lit et convertit les six axes, avec tests natifs et compilation réussis.
+
+La publication sur le broker n'est pas encore validée : il faut fournir un CA,
+un compte appareil et l'hôte. Les six scénarios Wokwi d'intégration restent à
+lancer après configuration du jeton CLI. L'extension keeper ne publie pas vers
+la base : le schéma backend distant accepte actuellement `event_type=shot` et
+aucun contrat de mouvement gardien n'a été convenu.
+
 Tu portes tout ce qui tourne sur l'ESP32 : le circuit Wokwi, le firmware, le Wi-Fi et le MQTT.
 
 ## Ce qui est déjà fait
