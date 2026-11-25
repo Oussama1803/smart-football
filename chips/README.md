@@ -12,6 +12,12 @@ Compiler : `./build.sh` (clang cible wasm32 et wasm-ld). Le script copie les `.w
 | `piezo-sensor` | analogique : pic de tension qui décroît (tau 5 ms) | `peakVolts`, `trigger` |
 | `fsr-sensor` | analogique : pont diviseur avec 10 kohm vers GND | `pressure` (0 à 100 %) |
 
+Le séquenceur `shot-test-sequencer` n'est pas une puce du circuit de production.
+Il est propre au projet [firmware/wokwi-test](../firmware/wokwi-test/README.md)
+et synthétise IR1, IR2 et les quatre voies analogiques pour les essais manuels
+dans Wokwi VS Code. Ses WASM et le FSR local sont compilés par
+`firmware/wokwi-test/build-chips.ps1`; ils restent dans ce sous-projet.
+
 Les contrôles Wokwi n'existent qu'en curseur (`range`), pas en bouton : `shoot` et `trigger` sont des curseurs 0 / 1 qu'on passe de 0 à 1 pour déclencher.
 
 Les deux barrières sont deux instances de `ir-break-beam`. `beam1` est le maître (rôle 1), `beam2` l'esclave (attribut `role = 2` dans `diagram.json`). Leurs broches `SYNC` sont reliées : l'impulsion de `SYNC` dure `D / v`, et l'esclave coupe son faisceau sur le front descendant.
@@ -56,7 +62,7 @@ l'indépendance des contrôles de l'esclave et le déclenchement unique sur Shoo
    capturer les timestamps ISR dans un tampon et les afficher depuis `loop()` ;
    ne pas imprimer depuis les ISR.
 
-Les 28 tests `pio test -e native` couvrent notamment IR2 → IR1 rejeté, le timeout
+Les 34 tests `pio test -e native` couvrent notamment IR2 → IR1 rejeté, le timeout
 et le réarmement. Pour vérifier aussi le rejet dans le simulateur, utiliser une
 copie de test avec un générateur de fronts actifs LOW : IR2/GPIO26 d'abord, puis
 IR1/GPIO25 10 ms plus tard, sorties initialement HIGH et chip IR déconnecté des
