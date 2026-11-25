@@ -36,12 +36,14 @@ Branche `feature/step5-cloud-backend` (Alae, étape 5) : compose (db, mosquitto,
 
 Étape 8b, ajouté le 24 novembre : `docs/rbac.md` (rôles, droits, lien séance-joueur, exemple FastAPI testé, ACL Mosquitto testée sur un Mosquitto 2.0.18 local, droits PostgreSQL) et `infra/security/db-roles.sql` (testé sur PostgreSQL 16 jetable). Ni l'un ni l'autre n'a été essayé dans les conteneurs du compose.
 
+Étape 10, ajouté le 25 novembre : `infra/compose.monitoring.yaml`, `infra/monitoring/` et `docs/monitoring.md`. Testé en local avec Docker sur le compose de `main` : cibles up, l'arrêt d'un faux ESP32 se voit dans Grafana (alerte `NoDeviceTraffic`), la panne de l'API aussi. Pas testé sur le VPS ni avec le vrai ESP32. Erreurs de traitement : attendent un `/metrics` dans le backend (proposition pour Alae dans `docs/monitoring.md`).
+
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
 
 ## Prochaines actions pour la partie d'Oussama
 
 1. Étape 8b : rôles de l'API, droits MQTT, utilisateur de base à privilèges minimaux, UFW sur le VPS, sauvegardes, tests T1 à T8 avec captures. Dépend du `compose.yaml` et de l'API d'Alae (pas encore là).
-2. Étape 10 : Prometheus et Grafana, après le compose d'Alae.
+2. Étape 10 : faite en local. Reste : lancer sur le VPS, compte MQTT `monitor` avec Mohamed, `/metrics` backend avec Alae.
 3. Étape 12b : la démo des 10 points seulement, pas de rapport (décision d'Oussama, 25 novembre). Avant la démo, l'étape 12a (tests d'ensemble). À la fin, Oussama veut une page interactive de l'architecture (pas avant).
 4. `docs/rbac.md` écrit : faire valider le tableau des droits et transmettre la partie 8 à Alae et Mohamed.
 

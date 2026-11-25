@@ -1,0 +1,33 @@
+# Step 10: alert rules, visible in Prometheus (Alerts tab) and in Grafana.
+groups:
+  - name: smartfootball
+    rules:
+      - alert: ApiDown
+        expr: probe_success{job="api_health"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "API /health is down or degraded"
+
+      - alert: BrokerDown
+        expr: probe_success{job="broker_tcp"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "Mosquitto does not accept TCP connections"
+
+      # The ESP32 sends a heartbeat every 30 s: no message for 2 min means the
+      # simulation stopped or the device lost its connection.
+      - alert: NoDeviceTraffic
+        expr: increase(broker_publish_messages_received[2m]) < 1
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "No MQTT publication for 2 minutes: simulation stopped?"
+
+      - alert: DiskAlmostFull
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"}) > 0.85
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Disk usage above 85 %"
