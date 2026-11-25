@@ -1,5 +1,29 @@
 # Brief Alae : cloud et données (étapes 5, 6, 7)
 
+## État vérifié (25 novembre 2026)
+
+Toutes les étapes 5, 6 et 7 sont entièrement développées, intégrées et vérifiées :
+- **Étape 5 (Backend, Broker & Base de données)** :
+  - Stack Docker Compose orchestrant Mosquitto v2, FastAPI (Python 3.11/3.14) et PostgreSQL 17 Alpine avec volume persistant `postgres_data`.
+  - Abonné MQTT asynchrone intégré au cycle de vie de FastAPI (écoute de `smartfootball/+/events` et `smartfootball/+/status`).
+  - Validation stricte des messages : champs obligatoires, types, vitesse de 5.0 à 150.0 km/h (exigence SEC2), zones conformes au prototype 4 zones et compatibles extension 9 zones, valeurs ADC brutes pour pression FSR et piézo (jamais en Newtons).
+  - Mécanisme anti-doublon (exigence SUR1) fondé sur l'unicité de `event_id` : insertion idempotente, une rafale de tirs renvoyée après coupure ne produit aucun doublon.
+  - Calcul de la latence de réception serveur $\Delta t = |\text{received\_at} - \text{timestamp}|$ (exigence ENF1 < 2 s).
+  - Validation automatisée : **53 tests pytest réussis sur 53** dans `backend/tests/`.
+- **Étape 6 (Tableau de bord web)** :
+  - Interface web réactive en HTML5/CSS3/JS natif (`frontend/`), légère et sans dépendance de compilation externe.
+  - KPIs en direct : total de tirs, précision cadrée (%), vitesses moyenne et maximale, pression et intensité relatives ADC.
+  - Représentation interactive du but avec heatmap dynamique (4 quadrants, indicateur hors cadre `none`, et bascule vers l'extension 9 zones).
+  - Outil de comparaison côte à côte de deux séances d'entraînement.
+  - Carte de supervision pour le module gardien MPU6050 (`keeper-esp32-01`).
+  - Distinction explicite dans l'interface entre mesures physiques réelles, valeurs brutes relatives ADC et données de simulation Wokwi.
+- **Étape 7 (Déploiement VPS)** :
+  - Configuration Nginx en reverse proxy routant `/` vers le frontend et `/api/` vers FastAPI.
+  - Ports sensibles (`5432` PostgreSQL et `8000` FastAPI) liés strictement à `127.0.0.1` pour éviter le contournement du pare-feu UFW par Docker.
+  - Guide complet de déploiement rédigé (`docs/deployment-vps.md`) avec sauvegarde automatisée PostgreSQL (`infra/security/backup-postgres.sh`).
+  - Script de simulation et de test (`scripts/simulate_shots.py`) validé pour injecter des tirs en HTTP/MQTT, tester la conformité SUR1 (10 tirs) et SEC2 (vitesse anormale).
+  - Prêt pour Saad (connexion de l'ESP32 Wokwi sur l'IP publique du VPS) et Mohamed (intégration TLS 8883 et comptes ACL dans Mosquitto à l'étape 8a).
+
 Tu portes tout ce qui reçoit, stocke et affiche les tirs : Mosquitto, FastAPI, PostgreSQL, le tableau de bord et le déploiement.
 
 ## Ce que tu reçois

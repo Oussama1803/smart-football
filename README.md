@@ -68,12 +68,29 @@ Ubuntu VPS, Eclipse Mosquitto, FastAPI, PostgreSQL (volume persistant), tableau 
 firmware/         ESP32 du but : PlatformIO (Arduino), diagram.json, wokwi.toml
 firmware-keeper/  ESP32 du gardien avec MPU6050 (extension)
 chips/            custom chips Wokwi : ir-break-beam, piezo-sensor, fsr-sensor
-backend/          FastAPI, abonné MQTT, tests pytest
-frontend/         tableau de bord
-infra/            compose.yaml, Mosquitto, Nginx, Prometheus, Grafana
-docs/             schémas, résultats des essais, rapport
+backend/          FastAPI, abonné MQTT, tests pytest (voir backend/README.md)
+frontend/         tableau de bord web interactif (voir frontend/README.md)
+infra/            compose.yaml, Mosquitto, Nginx, UFW, sauvegardes (voir infra/README.md)
+docs/             schémas, résultats des essais, guides de déploiement
+scripts/          outils de test et simulateurs (simulate_shots.py)
 .github/workflows/
 ```
+
+## Documentations détaillées
+
+- **Cloud & Données (Étapes 5, 6, 7)** :
+  - [Documentation Backend & Ingestion MQTT](backend/README.md)
+  - [Documentation Tableau de bord Web](frontend/README.md)
+  - [Documentation Infrastructure & Docker Compose](infra/README.md)
+  - [Architecture Cloud & Traçabilité des exigences](docs/cloud-backend.md)
+  - [Guide de déploiement sur VPS Ubuntu](docs/deployment-vps.md)
+- **Embarqué (Étapes 2, 3, 4, 11)** :
+  - [Firmware ESP32 du but](firmware/README.md)
+  - [Custom chips Wokwi](chips/README.md)
+  - [Firmware Gardien MPU6050](firmware-keeper/README.md)
+- **Sécurité & Coordination** :
+  - [Tests de sécurité T1 à T8](docs/security-tests.md)
+  - [Briefs d'équipe](docs/briefs/README.md)
 
 ## Règles
 
