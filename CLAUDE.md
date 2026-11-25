@@ -10,7 +10,7 @@ Le projet est noté par rapport au cahier des charges. Ne remplace aucun capteur
 
 Dépôt privé : `Oussama1803/smart-football`. Les issues #1 à #14 portent les étapes.
 
-- Oussama (chef de projet) : étapes 1, 8b (droits, UFW, sauvegardes, tests de sécurité), 10 (Prometheus et Grafana), 12b (démo et rapport), coordination.
+- Oussama (chef de projet) : étapes 1, 8b (droits, UFW, sauvegardes, tests de sécurité), 10 (Prometheus et Grafana), 12b (démo, pas de rapport), coordination.
 - Saad (`saadoooox`) : ESP32 et firmware, étapes 2, 3, 4, 11.
 - Alae (`AlaeCa`) : API FastAPI, PostgreSQL, dashboard, étapes 5, 6, 7.
 - Mohamed (`mohamedsamari`) : Mosquitto TLS, Nginx, Docker Compose, CI, étapes 8a et 9.
@@ -42,7 +42,7 @@ Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novemb
 
 1. Étape 8b : rôles de l'API, droits MQTT, utilisateur de base à privilèges minimaux, UFW sur le VPS, sauvegardes, tests T1 à T8 avec captures. Dépend du `compose.yaml` et de l'API d'Alae (pas encore là).
 2. Étape 10 : Prometheus et Grafana, après le compose d'Alae.
-3. Étape 12b : démo et rapport. À la fin, Oussama veut une page interactive de l'architecture (pas avant).
+3. Étape 12b : la démo des 10 points seulement, pas de rapport (décision d'Oussama, 25 novembre). Avant la démo, l'étape 12a (tests d'ensemble). À la fin, Oussama veut une page interactive de l'architecture (pas avant).
 4. `docs/rbac.md` écrit : faire valider le tableau des droits et transmettre la partie 8 à Alae et Mohamed.
 
 ## Décisions à faire valider par l'équipe (pas à Oussama seul)
