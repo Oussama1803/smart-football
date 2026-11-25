@@ -1,0 +1,53 @@
+# Fresh simulation. Impact at 12-13 ms; IR2 at 10-11 ms after Shoot.
+# Validate the complete JSON with scripts/check-shot.cjs (see scenarios/README.md).
+name: '72 km/h impact: upper-right'
+version: 1
+author: 'Smart Football team'
+steps:
+  - wait-serial: '[BOOT]'
+  - set-control:
+      part-id: beam1
+      name: shoot
+      value: 0
+  - set-control:
+      part-id: piezo1
+      name: trigger
+      value: 0
+  - set-control:
+      part-id: piezo2
+      name: trigger
+      value: 0
+  - set-control:
+      part-id: piezo3
+      name: trigger
+      value: 0
+  - set-control:
+      part-id: piezo4
+      name: trigger
+      value: 0
+  - set-control:
+      part-id: beam1
+      name: ballSpeedKmh
+      value: 72
+  - set-control:
+      part-id: fsr1
+      name: pressure
+      value: 60
+  - set-control:
+      part-id: piezo2
+      name: peakVolts
+      value: 3.3
+  - delay: 2ms
+  - set-control:
+      part-id: beam1
+      name: shoot
+      value: 1
+  - delay: 12ms
+  - set-control:
+      part-id: piezo2
+      name: trigger
+      value: 1
+  - wait-serial: '"target_zone":"upper_right","impact_intensity":'
+  # Hold all triggers high to detect accidental repeated shots in the serial log.
+  - delay: 500ms
+

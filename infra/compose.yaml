@@ -1,0 +1,101 @@
+# Docker Compose for Smart Football Platform
+# Step 5: Mosquitto, FastAPI, PostgreSQL (persistent volume)
+# Note: Database service is named "db" to match infra/security/backup-postgres.sh
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database (persistent volume)
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    container_name: smartfootball-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smartfootball}
+      POSTGRES_USER: ${POSTGRES_USER:-smartfootball}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Bind to loopback only to avoid bypassing UFW firewall on host
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartfootball_net
+
+  # ----------------------------------------------------------------------------
+  # Eclipse Mosquitto MQTT Broker
+  # ----------------------------------------------------------------------------
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smartfootball-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - smartfootball_net
+
+  # ----------------------------------------------------------------------------
+  # Backend API (FastAPI + MQTT Subscriber)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: smartfootball-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-smartfootball}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-smartfootball}
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      MQTT_BACKEND_USER: ${MQTT_BACKEND_USER:-backend}
+      MQTT_BACKEND_PASSWORD: ${MQTT_BACKEND_PASSWORD:-change-me}
+      API_SECRET_KEY: ${API_SECRET_KEY:-change-me}
+      ENABLE_MQTT_SUBSCRIBER: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - smartfootball_net
+
+  # ----------------------------------------------------------------------------
+  # Nginx (Frontend Web Server & Reverse Proxy)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: smartfootball-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../frontend:/usr/share/nginx/html:ro
+    networks:
+      - smartfootball_net
+
+networks:
+  smartfootball_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_log:
+    driver: local

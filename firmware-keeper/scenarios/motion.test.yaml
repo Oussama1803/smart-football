@@ -1,0 +1,14 @@
+name: 'Keeper acceleration and angular velocity'
+version: 1
+author: 'Smart Football team'
+steps:
+  - wait-serial: '[IMU] ready'
+  - set-control:
+      part-id: imu1
+      name: accelX
+      value: 1
+  - set-control:
+      part-id: imu1
+      name: rotationZ
+      value: 90
+  - wait-serial: 'accel_g=1.000,0.000,1.000 rotation_dps=0.000,0.000,90.000'
