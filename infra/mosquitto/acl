@@ -10,3 +10,7 @@ topic read smartfootball/+/status
 user goal-esp32-01
 topic write smartfootball/goal-esp32-01/events
 topic write smartfootball/goal-esp32-01/status
+
+# Grafana exporter: read-only broker statistics
+user monitor
+topic read $SYS/#
