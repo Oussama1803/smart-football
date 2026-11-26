@@ -14,6 +14,11 @@ from app.validation import (
     parse_and_validate_shot,
     parse_and_validate_status,
 )
+from app.metrics import (
+    record_mqtt_message,
+    record_processing_error,
+    record_device_offline,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +98,11 @@ class MQTTService:
 
     def _handle_event_message(self, topic_device_id: str, payload: bytes):
         """Validate and persist shot event with deduplication."""
+        record_mqtt_message("shot")
         try:
             shot_data = parse_and_validate_shot(payload)
         except MessageValidationError as exc:
+            record_processing_error("validation")
             # SEC2 / Validation failure logged clearly
             logger.warning(
                 "Invalid shot message on topic for %s: %s",
@@ -120,21 +127,29 @@ class MQTTService:
             else:
                 logger.info("Duplicate shot %s skipped (SUR1)", shot.event_id)
         except Exception as exc:
+            record_processing_error("database")
             logger.exception("Database error while recording shot: %s", exc)
         finally:
             db.close()
 
     def _handle_status_message(self, topic_device_id: str, payload: bytes):
         """Record status / heartbeat / Last Will from device."""
+        record_mqtt_message("status")
         try:
             status_data = parse_and_validate_status(payload, topic_device_id)
+            if status_data.status == "offline":
+                record_device_offline()
             db = SessionLocal()
             try:
                 record_device_status(db, status_data)
                 logger.info("Status recorded for device %s: %s", topic_device_id, status_data.status)
             finally:
                 db.close()
+        except MessageValidationError as exc:
+            record_processing_error("validation")
+            logger.warning("Invalid status message on topic for %s: %s", topic_device_id, exc.message)
         except Exception as exc:
+            record_processing_error("database")
             logger.exception("Failed to process status message for %s: %s", topic_device_id, exc)
 
     def start(self):

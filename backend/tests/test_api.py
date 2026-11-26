@@ -167,3 +167,39 @@ def test_device_list_endpoint(client, sample_shot_payload):
     assert len(devices) >= 1
     dev = next(d for d in devices if d["device_id"] == "goal-esp32-alpha")
     assert dev["shot_count"] == 1
+
+
+def test_metrics_endpoint(client):
+    """Verify /metrics endpoint returns Prometheus exposition format."""
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    body = res.text
+    assert "smartfootball_mqtt_messages_total" in body
+    assert "smartfootball_processing_errors_total" in body
+    assert "smartfootball_device_offline_total" in body
+
+
+def test_frontend_static_serving(client):
+    """Verify frontend HTML, CSS, and JS static assets are served properly."""
+    # Root index
+    res_root = client.get("/")
+    assert res_root.status_code == 200
+    assert "Smart Football" in res_root.text
+
+    # /static/css/styles.css
+    res_css = client.get("/static/css/styles.css")
+    assert res_css.status_code == 200
+    assert "text/css" in res_css.headers.get("content-type", "")
+
+    # /static/js/app.js
+    res_js = client.get("/static/js/app.js")
+    assert res_js.status_code == 200
+    assert "javascript" in res_js.headers.get("content-type", "")
+
+    # Fallback /css/styles.css and /js/app.js
+    res_css_direct = client.get("/css/styles.css")
+    assert res_css_direct.status_code == 200
+
+    res_js_direct = client.get("/js/app.js")
+    assert res_js_direct.status_code == 200
+
