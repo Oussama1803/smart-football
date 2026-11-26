@@ -13,7 +13,7 @@ Remplacer `HOTE` par le nom ou l'IP du VPS, `ca.crt` par le certificat de l'auto
 | T5 | Aucun mot de passe ni clé dans Git | Aucun résultat | `t5-secrets-git.png` | 2026-11-26 | ✅ Aucune clé privée PEM dans tout l'historique, aucun fichier sensible suivi par Git, `.env`, `passwords` et clés ignorés. |
 | T6 | Web et MQTT chiffrés | TLS sur 443 et 8883, rien en clair | `t6-chiffrement-mqtt.png`, `t6-chiffrement-web.png` | 2026-11-26 (local) | ✅ MQTT 8883 : TLS 1.3, certificat vérifié. Web : HTTP 80 redirige (301) vers HTTPS 443, certificat vérifié. Sans le CA : connexion refusée. À refaire sur le VPS avec le vrai certificat. |
 | T7 | Rôles (RBAC) | Un joueur ne fait pas ce que fait un administrateur | `t7-rbac.png` | | |
-| T8 | Sauvegarde PostgreSQL | Dump non vide, restauration possible | `t8-sauvegarde.png` | | |
+| T8 | Sauvegarde PostgreSQL | Dump non vide, restauration possible | `t8-sauvegarde.png` | 2026-11-26 (local) | Sauvegarde réussie, sur une base jetable et sur le vrai conteneur `db`. Restauration réussie sur la base jetable (25 tirs). Sur le conteneur : restauration faite, résultat à confirmer par la capture. À refaire sur le VPS. |
 
 ### Test complémentaire : tir légitime de bout en bout (2026-11-26, local)
 
@@ -84,6 +84,12 @@ Attendu : `git grep` ne trouve que des lectures de variables ou des valeurs d'ex
 
 Ne pas utiliser `git log -S"BEGIN PRIVATE KEY"` : ce fichier contient ce texte, la commande le trouve et donne une fausse alerte.
 
+Résultat du 26 novembre, sur toutes les branches de GitHub (31 commits) :
+
+- Aucune vraie valeur trouvée. Les seules correspondances sont des noms de variables (`SF_MQTT_PASSWORD`, `:'app_password'`).
+- Le seul « PRIVATE KEY » de l'historique est le texte de la commande ci-dessus.
+- Aucun `.env`, `secrets.h`, `.pem` ou `.key` n'a jamais été commité. `.gitignore` couvre `.env`, `*.pem`, `*.key` et `firmware/include/secrets.h`.
+
 ## T6 : chiffrement
 
 ```
@@ -119,3 +125,11 @@ gunzip -c backups/smartfootball_*.sql.gz | head -20
 ```
 
 Attendu : un fichier non vide qui contient du SQL. Tester une restauration dans une base vide au moins une fois.
+
+Résultat du 26 novembre, en local (PostgreSQL 16 jetable, avec 25 tirs ; l'appel `docker compose exec` remplacé par un `pg_dump` local) :
+
+- La sauvegarde écrit un fichier `.sql.gz` de 1 Ko. Restauré dans une base vide, il redonne les 25 tirs.
+- Ce test a trouvé un bug, maintenant corrigé. Quand la base était injoignable, le script laissait un fichier vide de 20 octets, et dans la même seconde, ce fichier écrasait la bonne sauvegarde. Le script écrit maintenant dans un fichier `.partial`, renommé seulement si `pg_dump` réussit. Après correction : la sauvegarde ratée renvoie le code 1, et la bonne sauvegarde reste intacte.
+- À refaire sur le VPS avec le vrai conteneur `db`, puis prendre la capture.
+
+Résultat du 26 novembre, sur le vrai conteneur `db` du compose (PC d'Oussama, Docker Desktop) : `backup-postgres.sh` lancé avec Git Bash a écrit `smartfootball_20261126_015045.sql.gz`. La restauration dans une base vide `restore_test` a été faite. Le nombre de tirs restaurés n'a pas été noté : à compléter avec la capture `t8-sauvegarde.png`.

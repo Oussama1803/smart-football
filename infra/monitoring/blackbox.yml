@@ -1,0 +1,33 @@
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4
+
+  # Dashboard over HTTPS (step 8a). Nginx is reached as "nginx" inside Docker, a name the
+  # certificate does not cover (localhost locally, the domain on the VPS), so this
+  # availability probe does not check the certificate. Certificate checks are test T6.
+  https_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4
+      fail_if_not_ssl: true
+      tls_config:
+        insecure_skip_verify: true
+
+  # /health answers 200 even when the database is down ("degraded"), so check the body too.
+  api_healthy:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4
+      fail_if_body_not_matches_regexp:
+        - '"status":\s*"healthy"'
+
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4

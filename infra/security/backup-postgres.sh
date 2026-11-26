@@ -33,14 +33,22 @@ chmod 700 "$BACKUP_DIR"
 stamp="$(date +%Y%m%d_%H%M%S)"
 target="$BACKUP_DIR/smartfootball_${stamp}.sql.gz"
 
-docker compose exec -T "$SERVICE" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$target"
+partial="$target.partial"
+trap 'rm -f "$partial"' EXIT
 
-# An empty dump means pg_dump failed: do not keep it.
-if [ ! -s "$target" ] || [ "$(gzip -dc "$target" | wc -c)" -eq 0 ]; then
-  rm -f "$target"
+# Write to a temporary file first: a failed run must never leave an empty file
+# or replace a good backup. With pipefail, a pg_dump failure fails the pipeline.
+if ! docker compose exec -T "$SERVICE" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "$partial"; then
+  echo "Backup failed: pg_dump returned an error." >&2
+  exit 1
+fi
+
+if [ "$(gzip -dc "$partial" | wc -c)" -eq 0 ]; then
   echo "Backup failed: empty dump." >&2
   exit 1
 fi
+
+mv "$partial" "$target"
 
 find "$BACKUP_DIR" -name 'smartfootball_*.sql.gz' -mtime +"$KEEP_DAYS" -delete
 echo "Backup written: $target"
