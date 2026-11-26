@@ -5,3 +5,7 @@ Dockerfile text eol=lf
 *.yml text eol=lf
 # Compiled Wokwi chips are binary.
 *.wasm binary
+
+# Mosquitto config files are read on Linux: always keep LF.
+infra/mosquitto/mosquitto.conf text eol=lf
+infra/mosquitto/acl text eol=lf

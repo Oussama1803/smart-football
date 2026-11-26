@@ -36,13 +36,13 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
 
-  # Dashboard availability through Nginx.
+  # Dashboard availability through Nginx, over HTTPS (port 80 only redirects since step 8a).
   - job_name: web
     metrics_path: /probe
     params:
-      module: [http_2xx]
+      module: [https_2xx]
     static_configs:
-      - targets: ["http://nginx/"]
+      - targets: ["https://nginx/"]
     relabel_configs: *blackbox_relabel
 
   # Broker availability: TCP connect on the internal MQTT port.

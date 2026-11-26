@@ -1,0 +1,12 @@
+# Mosquitto ACL for Smart Football (step 8a)
+# Anything not listed here is denied.
+
+# Backend: read-only on every device topic
+user backend
+topic read smartfootball/+/events
+topic read smartfootball/+/status
+
+# Goal ESP32: may only publish on its own topics
+user goal-esp32-01
+topic write smartfootball/goal-esp32-01/events
+topic write smartfootball/goal-esp32-01/status

@@ -44,6 +44,8 @@ docker compose -f compose.yaml -f compose.monitoring.yaml up -d
 
 ### Points 5 à 8 : simuler des tirs (plan B)
 
+Depuis l'étape 8a (PR #22, 26 novembre), le broker refuse les connexions sans compte, et le port 1883 n'est plus publié. Les commandes ci-dessous ne marchent donc plus telles quelles : il faut d'abord adapter `simulate_shots.py` au TLS (port 8883, `ca.crt`) avec un compte dédié, créé par Mohamed (travail d'Alae). En attendant, on peut publier un tir valide comme dans le test « tir légitime » de Mohamed (`docs/securite-mqtt.md`, captures `tir-legitime-*.png`).
+
 Depuis la racine du dépôt (il faut `pip install paho-mqtt` une seule fois) :
 
 ```text

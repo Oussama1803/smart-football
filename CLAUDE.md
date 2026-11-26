@@ -42,6 +42,8 @@ Branche `feature/step5-cloud-backend` (Alae, étape 5) : compose (db, mosquitto,
 
 Testé par Oussama sur son PC le 26 novembre : pile complète + supervision sous Docker Desktop, 34 tirs du simulateur en base et dans l'API, Grafana (case Disque corrigée, alertes, tableau Appareils). `db-roles.sql` lancé dans le vrai conteneur : `sf_backup` lit mais `DELETE` est refusé. PR #21 d'Alae : `/metrics` dans le backend (branché dans Prometheus et Grafana le 26) et correctif Nginx. Malgré son titre, pas de connexion ni de rôles dans l'API.
 
+PR #22 de Mohamed fusionnée le 26 novembre : comptes MQTT, ACL, TLS sur 8883, 1883 non publié, HTTPS sur 443, T1, T2, T5 et T6 réussis en local. Conséquences chez Oussama : la sonde du tableau de bord passe en HTTPS (fait), le collecteur Mosquitto a besoin d'un compte `monitor` en lecture de `$SYS/#` (à demander à Mohamed), et le simulateur d'Alae doit passer en TLS (plan B de la démo).
+
 Étape 12b : déroulé dans `docs/demo.md`, avec un plan A (VPS) et un plan B (tout en local, simulateur à la place de l'ESP32).
 
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
