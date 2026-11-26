@@ -922,6 +922,101 @@
         "mode": "markdown",
         "content": "Les **erreurs de traitement** (messages refusés par la validation, erreurs de base) et les **déconnexions des appareils** (Last Will `offline`) sont connues du backend seulement. Elles s'afficheront ici quand le backend exposera `/metrics` (voir `docs/monitoring.md`)."
       }
+    },
+    {
+      "type": "row",
+      "title": "Appareils et alertes",
+      "id": 19,
+      "gridPos": {"x": 0, "y": 31, "w": 24, "h": 1},
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Alertes",
+      "description": "Alertes de Prometheus (infra/monitoring/alerts.yml). « en attente » : la condition est vraie mais pas encore assez longtemps. « EN COURS » : l'alerte est déclenchée.",
+      "id": 20,
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"x": 0, "y": 32, "w": 10, "h": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "ALERTS",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "Value": true, "instance": true, "job": true},
+            "indexByName": {"alertname": 0, "alertstate": 1, "severity": 2},
+            "renameByName": {"alertname": "Alerte", "alertstate": "État", "severity": "Gravité"}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Aucune alerte",
+          "custom": {"align": "left"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "État"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "mappings", "value": [
+                {"type": "value", "options": {
+                  "firing": {"text": "EN COURS", "color": "red"},
+                  "pending": {"text": "en attente", "color": "orange"}
+                }}
+              ]}
+            ]
+          }
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "sm"}
+    },
+    {
+      "type": "table",
+      "title": "Appareils",
+      "description": "Lu dans PostgreSQL (tables shots et device_status). « en ligne » : un message reçu depuis moins de 90 s (heartbeat toutes les 30 s) et pas de Last Will offline.",
+      "id": 21,
+      "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres"},
+      "gridPos": {"x": 10, "y": 32, "w": 14, "h": 8},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "grafana-postgresql-datasource", "uid": "postgres"},
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH ids AS (\n  SELECT device_id FROM shots\n  UNION\n  SELECT device_id FROM device_status\n),\nlast_status AS (\n  SELECT DISTINCT ON (device_id) device_id, status, received_at\n  FROM device_status\n  ORDER BY device_id, received_at DESC\n),\nshot_stats AS (\n  SELECT device_id, count(*) AS n, max(received_at) AS last_shot\n  FROM shots\n  GROUP BY device_id\n)\nSELECT\n  ids.device_id AS \"Appareil\",\n  CASE\n    WHEN COALESCE(ls.status, '') <> 'offline'\n     AND GREATEST(ls.received_at, ss.last_shot) > now() - interval '90 seconds'\n    THEN 'en ligne' ELSE 'hors ligne'\n  END AS \"État\",\n  COALESCE(ls.status, '-') AS \"Dernier statut\",\n  COALESCE(ss.n, 0) AS \"Tirs\",\n  GREATEST(ls.received_at, ss.last_shot) AS \"Dernier message\"\nFROM ids\nLEFT JOIN last_status ls USING (device_id)\nLEFT JOIN shot_stats ss USING (device_id)\nORDER BY 5 DESC NULLS LAST;"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Aucun appareil",
+          "custom": {"align": "left"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "État"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "mappings", "value": [
+                {"type": "value", "options": {
+                  "en ligne": {"color": "green"},
+                  "hors ligne": {"color": "red"}
+                }}
+              ]}
+            ]
+          }
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "sm"}
     }
   ]
 }

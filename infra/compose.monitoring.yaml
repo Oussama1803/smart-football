@@ -38,6 +38,10 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # Read-only database account for the "Appareils" table (created by infra/security/db-roles.sql).
+      GF_PG_DB: ${POSTGRES_DB:-smartfootball}
+      GF_PG_USER: sf_backup
+      GF_PG_PASSWORD: ${DB_BACKUP_PASSWORD:-}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro

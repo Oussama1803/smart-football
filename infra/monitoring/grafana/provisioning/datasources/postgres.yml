@@ -1,0 +1,18 @@
+# Read-only PostgreSQL access for the "Appareils" table of the dashboard.
+# Uses the sf_backup role created by infra/security/db-roles.sql (SELECT only), never the superuser.
+# Values come from the grafana service environment (compose.monitoring.yaml), which reads .env.
+apiVersion: 1
+datasources:
+  - name: PostgreSQL
+    uid: postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: db:5432
+    user: $GF_PG_USER
+    editable: false
+    jsonData:
+      database: $GF_PG_DB
+      sslmode: disable
+      postgresVersion: 1700
+    secureJsonData:
+      password: $GF_PG_PASSWORD
