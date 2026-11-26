@@ -12,14 +12,16 @@ L'étape est finie quand l'arrêt de la simulation se voit dans Grafana. Ce docu
 | Disponibilité de l'API | blackbox sur `/health` | API (/health) |
 | État du broker | blackbox (TCP), mosquitto-exporter (`$SYS`) | Broker MQTT, Broker allumé depuis |
 | Messages reçus | mosquitto-exporter | Messages MQTT reçus (2 min), Publications reçues par minute |
-| Déconnexions des appareils | mosquitto-exporter, en partie | Appareils connectés, Clients connectés au broker |
-| Erreurs de traitement | pas encore | nécessite `/metrics` dans le backend (voir plus bas) |
+| Déconnexions des appareils | backend `/metrics` (Last Will `offline`), mosquitto-exporter, PostgreSQL | Déconnexions d'appareils (1 h), Appareils connectés, tableau Appareils |
+| Erreurs de traitement | backend `/metrics` (validation refusée, erreur de base) | Erreurs de traitement du backend, Erreurs de traitement (1 h) |
 
 La sonde de l'API vérifie aussi le contenu de la réponse : `/health` répond 200 même quand la base est injoignable (`"status": "degraded"`). La sonde ne compte donc l'API comme disponible que si la réponse contient `"status": "healthy"`.
 
 L'ESP32 envoie un heartbeat toutes les 30 s (`firmware/src/network.cpp`). Si le broker ne reçoit aucune publication pendant 2 minutes, la simulation est arrêtée ou l'appareil est déconnecté. Le panneau « Messages MQTT reçus (2 min) » passe alors au rouge et l'alerte `NoDeviceTraffic` se déclenche.
 
-Alertes (onglet Alerts de Prometheus) : `ApiDown`, `BrokerDown`, `NoDeviceTraffic`, `DiskAlmostFull`.
+Alertes : `ApiDown`, `BrokerDown`, `NoDeviceTraffic`, `DiskAlmostFull`. Elles sont visibles dans l'onglet Alerts de Prometheus et dans le tableau « Alertes » de Grafana.
+
+Le tableau « Appareils » lit PostgreSQL avec le compte en lecture seule `sf_backup` : pour chaque appareil, son état (en ligne si un message est arrivé depuis moins de 90 s), son dernier statut, son nombre de tirs et l'heure de son dernier message.
 
 ## Fichiers
 
@@ -36,7 +38,12 @@ Le `compose.yaml` d'Alae n'est pas modifié : la supervision s'ajoute par-dessus
 
 ## Lancer
 
-Sur le VPS, depuis `infra/`, avec `GRAFANA_ADMIN_PASSWORD` renseigné dans `.env` (le démarrage échoue s'il manque) :
+Avant le premier lancement :
+
+- `.env` contient `GRAFANA_ADMIN_PASSWORD` (le démarrage échoue s'il manque) et `DB_BACKUP_PASSWORD`. Ce dernier ne doit contenir que des lettres et des chiffres, car `$` est interprété par Compose, par Grafana et par PowerShell.
+- Les rôles de `infra/security/db-roles.sql` sont créés dans la base, avec le même mot de passe pour `sf_backup`. Sinon, le tableau Appareils affiche « password authentication failed ».
+
+Puis, depuis `infra/` :
 
 ```bash
 docker compose -f compose.yaml -f compose.monitoring.yaml up -d
@@ -82,19 +89,4 @@ topic read $SYS/#
 
 Les identifiants vont dans `.env` (`MQTT_MONITOR_USER`, `MQTT_MONITOR_PASSWORD`).
 
-Pour Alae : les erreurs de traitement et les déconnexions annoncées par le Last Will ne sont connues que du backend. Proposition, non codée et non testée :
-- Ajouter `prometheus-client` aux dépendances.
-- Exposer `/metrics` avec `make_asgi_app()`.
-- Compter dans `mqtt_service.py` :
-  - `smartfootball_mqtt_messages_total` (par type : `shot`, `status`) ;
-  - `smartfootball_processing_errors_total` (validation refusée, erreur de base) ;
-  - `smartfootball_device_offline_total` (statut `offline` reçu).
-- Ne pas rendre `/metrics` accessible par Nginx. La configuration actuelle n'expose que `/api/`, `/docs`, `/openapi.json` et `/health`, donc c'est déjà le cas.
-
-Une fois `/metrics` en place, il suffit d'ajouter cette cible dans `prometheus.yml`, puis de remplacer le panneau texte « À venir » par deux courbes :
-
-```yaml
-  - job_name: backend
-    static_configs:
-      - targets: ["backend:8000"]
-```
+Pour Alae : fait le 26 novembre (PR #21). Le backend expose `/metrics` (`backend/app/metrics.py`), et Prometheus le lit dans le réseau Docker (job `backend`). Nginx ne l'expose pas.

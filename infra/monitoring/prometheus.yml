@@ -53,3 +53,9 @@ scrape_configs:
     static_configs:
       - targets: ["mosquitto:1883"]
     relabel_configs: *blackbox_relabel
+
+  # Backend counters (backend/app/metrics.py): messages by type, processing errors, Last Will offline.
+  # /metrics is reached through the Docker network only; Nginx does not proxy it.
+  - job_name: backend
+    static_configs:
+      - targets: ["backend:8000"]

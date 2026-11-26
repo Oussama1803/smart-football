@@ -40,6 +40,8 @@ Branche `feature/step5-cloud-backend` (Alae, étape 5) : compose (db, mosquitto,
 
 Étape 8b, ajouté le 26 novembre : T5 réussi (aucun secret, 31 commits, toutes les branches). T8 réussi en local, après correction d'un bug dans `backup-postgres.sh` (une sauvegarde ratée laissait un fichier vide qui pouvait écraser la bonne). `compose.monitoring.yaml` sans `rslave`, pour Docker Desktop. Le VPS n'existe toujours pas (rien sur GitHub ne le montre) : T1 à T4, T6 et T7 l'attendent.
 
+Testé par Oussama sur son PC le 26 novembre : pile complète + supervision sous Docker Desktop, 34 tirs du simulateur en base et dans l'API, Grafana (case Disque corrigée, alertes, tableau Appareils). `db-roles.sql` lancé dans le vrai conteneur : `sf_backup` lit mais `DELETE` est refusé. PR #21 d'Alae : `/metrics` dans le backend (branché dans Prometheus et Grafana le 26) et correctif Nginx. Malgré son titre, pas de connexion ni de rôles dans l'API.
+
 Étape 12b : déroulé dans `docs/demo.md`, avec un plan A (VPS) et un plan B (tout en local, simulateur à la place de l'ESP32).
 
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
