@@ -38,6 +38,10 @@ Branche `feature/step5-cloud-backend` (Alae, étape 5) : compose (db, mosquitto,
 
 Étape 10, ajouté le 25 novembre : `infra/compose.monitoring.yaml`, `infra/monitoring/` et `docs/monitoring.md`. Testé en local avec Docker sur le compose de `main` : cibles up, l'arrêt d'un faux ESP32 se voit dans Grafana (alerte `NoDeviceTraffic`), la panne de l'API aussi. Pas testé sur le VPS ni avec le vrai ESP32. Erreurs de traitement : attendent un `/metrics` dans le backend (proposition pour Alae dans `docs/monitoring.md`).
 
+Étape 8b, ajouté le 26 novembre : T5 réussi (aucun secret, 31 commits, toutes les branches). T8 réussi en local, après correction d'un bug dans `backup-postgres.sh` (une sauvegarde ratée laissait un fichier vide qui pouvait écraser la bonne). `compose.monitoring.yaml` sans `rslave`, pour Docker Desktop. Le VPS n'existe toujours pas (rien sur GitHub ne le montre) : T1 à T4, T6 et T7 l'attendent.
+
+Étape 12b : déroulé dans `docs/demo.md`, avec un plan A (VPS) et un plan B (tout en local, simulateur à la place de l'ESP32).
+
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
 
 ## Prochaines actions pour la partie d'Oussama
