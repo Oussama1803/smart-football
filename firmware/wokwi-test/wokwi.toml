@@ -1,0 +1,12 @@
+[wokwi]
+version = 1
+firmware = '../.pio/build/esp32dev/firmware.bin'
+elf = '../.pio/build/esp32dev/firmware.elf'
+
+[[chip]]
+name = 'shot-test-sequencer'
+binary = 'chips/shot-sequencer.chip.wasm'
+
+[[chip]]
+name = 'fsr-sensor'
+binary = 'chips/fsr-sensor.chip.wasm'

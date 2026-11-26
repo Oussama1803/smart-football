@@ -1,0 +1,23 @@
+{
+  "name": "Smart Football shot test sequencer",
+  "author": "Smart Football team",
+  "pins": ["IR1", "IR2", "PZ1", "PZ2", "PZ3", "PZ4"],
+  "controls": [
+    {
+      "id": "scenario",
+      "label": "Scenario (0-5, see README)",
+      "type": "range",
+      "min": 0,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "id": "run",
+      "label": "Run shot (0 -> 1)",
+      "type": "range",
+      "min": 0,
+      "max": 1,
+      "step": 1
+    }
+  ]
+}

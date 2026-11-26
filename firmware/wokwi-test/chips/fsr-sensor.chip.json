@@ -1,0 +1,15 @@
+{
+  "name": "FSR (force sensitive resistor)",
+  "author": "Smart Football team",
+  "pins": ["VCC", "GND", "OUT"],
+  "controls": [
+    {
+      "id": "pressure",
+      "label": "Pressure (relative, %)",
+      "type": "range",
+      "min": 0,
+      "max": 100,
+      "step": 1
+    }
+  ]
+}
