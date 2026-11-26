@@ -55,8 +55,9 @@ services:
     pid: host
     command:
       - --path.rootfs=/host
+    # No ",rslave": Docker Desktop (Windows) refuses it. Only needed to see disks mounted after start.
     volumes:
-      - /:/host:ro,rslave
+      - /:/host:ro
     networks:
       - smartfootball_net
 

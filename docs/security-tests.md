@@ -10,10 +10,10 @@ Remplacer `HOTE` par le nom ou l'IP du VPS, `ca.crt` par le certificat de l'auto
 | T2 | Publication sur un topic non autorisé | Bloquée par l'ACL, rien en base | `t2-mqtt-topic-interdit.png` | | |
 | T3 | Tableau de bord sans authentification | Accès refusé | `t3-dashboard-sans-auth.png` | | |
 | T4 | Seuls les ports nécessaires sont ouverts | 22, 80, 443, 8883 seulement | `t4-ports-ouverts.png` | | |
-| T5 | Aucun mot de passe ni clé dans Git | Aucun résultat | `t5-secrets-git.png` | | |
+| T5 | Aucun mot de passe ni clé dans Git | Aucun résultat | `t5-secrets-git.png` | 26/11 | Réussi (31 commits, toutes les branches) |
 | T6 | Web et MQTT chiffrés | TLS sur 443 et 8883, rien en clair | `t6-chiffrement.png` | | |
 | T7 | Rôles (RBAC) | Un joueur ne fait pas ce que fait un administrateur | `t7-rbac.png` | | |
-| T8 | Sauvegarde PostgreSQL | Dump non vide, restauration possible | `t8-sauvegarde.png` | | |
+| T8 | Sauvegarde PostgreSQL | Dump non vide, restauration possible | `t8-sauvegarde.png` | 26/11 | Réussi en local, à refaire sur le VPS |
 
 ## T1 : sans identifiants (SEC1)
 
@@ -62,6 +62,12 @@ git ls-files | findstr /i ".env secrets.h .pem .key"
 
 Attendu : pas de vraie valeur. `.env.example` et `secrets.h.example` ne contiennent que des `change-me`. Si une vraie valeur est déjà passée dans l'historique, la changer, pas seulement la supprimer.
 
+Résultat du 26 novembre, sur toutes les branches de GitHub (31 commits) :
+
+- Aucune vraie valeur trouvée. Les seules correspondances sont des noms de variables (`SF_MQTT_PASSWORD`, `:'app_password'`).
+- Le seul « PRIVATE KEY » de l'historique est le texte de la commande ci-dessus.
+- Aucun `.env`, `secrets.h`, `.pem` ou `.key` n'a jamais été commité. `.gitignore` couvre `.env`, `*.pem`, `*.key` et `firmware/include/secrets.h`.
+
 ## T6 : chiffrement
 
 ```
@@ -94,3 +100,9 @@ gunzip -c backups/smartfootball_*.sql.gz | head -20
 ```
 
 Attendu : un fichier non vide qui contient du SQL. Tester une restauration dans une base vide au moins une fois.
+
+Résultat du 26 novembre, en local (PostgreSQL 16 jetable, avec 25 tirs ; l'appel `docker compose exec` remplacé par un `pg_dump` local) :
+
+- La sauvegarde écrit un fichier `.sql.gz` de 1 Ko. Restauré dans une base vide, il redonne les 25 tirs.
+- Ce test a trouvé un bug, maintenant corrigé. Quand la base était injoignable, le script laissait un fichier vide de 20 octets, et dans la même seconde, ce fichier écrasait la bonne sauvegarde. Le script écrit maintenant dans un fichier `.partial`, renommé seulement si `pg_dump` réussit. Après correction : la sauvegarde ratée renvoie le code 1, et la bonne sauvegarde reste intacte.
+- À refaire sur le VPS avec le vrai conteneur `db`, puis prendre la capture.
