@@ -42,3 +42,5 @@ infra/mosquitto/passwords*
 *.srl
 
 infra/nginx/certs/
+# PostgreSQL dumps (backup-postgres.sh): contain the database data
+backups/
