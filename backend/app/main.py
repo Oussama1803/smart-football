@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,7 @@ from app.config import settings
 from app.database import get_db, init_db
 from app.mqtt_service import mqtt_service
 from app.api import shots, stats, devices
+from app.metrics import get_metrics_data
 
 # Configure logging
 logging.basicConfig(
@@ -85,10 +86,21 @@ def health_check(db: Session = Depends(get_db)):
     }
 
 
+@app.get("/metrics", tags=["system"], include_in_schema=False)
+def get_metrics():
+    """Prometheus metrics endpoint for scrapers (internal only)."""
+    content, media_type = get_metrics_data()
+    return Response(content=content, media_type=media_type)
+
+
 # Mount frontend static files if directory exists
 frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
 if frontend_dir.exists() and (frontend_dir / "index.html").exists():
     app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+    if (frontend_dir / "css").exists():
+        app.mount("/css", StaticFiles(directory=str(frontend_dir / "css")), name="css")
+    if (frontend_dir / "js").exists():
+        app.mount("/js", StaticFiles(directory=str(frontend_dir / "js")), name="js")
 
     @app.get("/", include_in_schema=False)
     def serve_frontend_root():
