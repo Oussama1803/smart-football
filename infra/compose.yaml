@@ -35,15 +35,32 @@ services:
     container_name: smartfootball-mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"
+      # Step 8a: only the TLS port is published.
+      # 1883 stays inside the Docker network (backend only).
       - "8883:8883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # Secrets are mounted read-only, then copied at start (see command)
+      - ./mosquitto/passwords:/mosquitto/secrets/passwords:ro
+      - ./mosquitto/acl:/mosquitto/secrets/acl:ro
+      - ./mosquitto/certs/ca.crt:/mosquitto/secrets/ca.crt:ro
+      - ./mosquitto/certs/server.crt:/mosquitto/secrets/server.crt:ro
+      - ./mosquitto/certs/server.key:/mosquitto/secrets/server.key:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
+    # Mosquitto runs as user "mosquitto" and cannot read root-owned 0600 files.
+    # Copy the secrets with the right owner and strict permissions, then start.
+    command:
+      - sh
+      - -c
+      - >-
+        install -o mosquitto -g mosquitto -m 0600 /mosquitto/secrets/passwords /mosquitto/secrets/acl /mosquitto/config/ &&
+        mkdir -p /mosquitto/certs &&
+        install -o mosquitto -g mosquitto -m 0644 /mosquitto/secrets/ca.crt /mosquitto/secrets/server.crt /mosquitto/certs/ &&
+        install -o mosquitto -g mosquitto -m 0600 /mosquitto/secrets/server.key /mosquitto/certs/ &&
+        exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
     networks:
       - smartfootball_net
-
   # ----------------------------------------------------------------------------
   # Backend API (FastAPI + MQTT Subscriber)
   # ----------------------------------------------------------------------------
