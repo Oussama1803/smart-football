@@ -98,10 +98,14 @@ services:
     depends_on:
       - backend
     ports:
+      # Step 8a: port 80 only redirects to HTTPS (443)
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../frontend:/usr/share/nginx/html:ro
+      - ./nginx/certs/web.crt:/etc/nginx/certs/web.crt:ro
+      - ./nginx/certs/web.key:/etc/nginx/certs/web.key:ro
     networks:
       - smartfootball_net
 

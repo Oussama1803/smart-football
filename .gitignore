@@ -40,3 +40,5 @@ infra/mosquitto/passwords*
 *.crt
 *.csr
 *.srl
+
+infra/nginx/certs/
