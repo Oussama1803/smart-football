@@ -6,8 +6,8 @@ from typing import Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Shot, DeviceStatus
-from app.schemas import ShotCreate, DeviceStatusCreate
+from app.models import Shot, DeviceStatus, KeeperEvent
+from app.schemas import ShotCreate, DeviceStatusCreate, KeeperEventCreate
 
 logger = logging.getLogger(__name__)
 
@@ -92,3 +92,58 @@ def record_device_status(db: Session, status_in: DeviceStatusCreate) -> DeviceSt
     db.commit()
     db.refresh(record)
     return record
+
+
+def record_keeper_event(db: Session, event_in: KeeperEventCreate) -> Tuple[Optional[KeeperEvent], bool]:
+    """
+    Persist a validated goalkeeper event into the database with strict deduplication (SUR1).
+
+    Returns:
+        (keeper_instance, is_created)
+        is_created is True if newly inserted, False if duplicate was ignored.
+    """
+    existing = db.query(KeeperEvent).filter(KeeperEvent.event_id == event_in.event_id).first()
+    if existing:
+        logger.info(
+            "SUR1 Anti-doublon: Duplicate keeper event_id=%s from device=%s ignored.",
+            event_in.event_id,
+            event_in.device_id,
+        )
+        return existing, False
+
+    now_utc = datetime.now(timezone.utc)
+    new_event = KeeperEvent(
+        event_id=event_in.event_id,
+        device_id=event_in.device_id,
+        session_id=event_in.session_id,
+        event_type=event_in.event_type,
+        timestamp=event_in.timestamp,
+        accel_x=event_in.accel_x,
+        accel_y=event_in.accel_y,
+        accel_z=event_in.accel_z,
+        gyro_x=event_in.gyro_x,
+        gyro_y=event_in.gyro_y,
+        gyro_z=event_in.gyro_z,
+        dive_direction=event_in.dive_direction,
+        firmware_version=event_in.firmware_version,
+        received_at=now_utc,
+    )
+
+    try:
+        db.add(new_event)
+        db.commit()
+        db.refresh(new_event)
+        logger.info(
+            "Keeper event stored: event_id=%s, device=%s, dive=%s",
+            new_event.event_id,
+            new_event.device_id,
+            new_event.dive_direction,
+        )
+        return new_event, True
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(KeeperEvent).filter(KeeperEvent.event_id == event_in.event_id).first()
+        if existing:
+            return existing, False
+        raise
+

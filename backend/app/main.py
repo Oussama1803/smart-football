@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db, init_db
 from app.mqtt_service import mqtt_service
-from app.api import shots, stats, devices
+from app.api import shots, stats, devices, keeper
 from app.metrics import get_metrics_data
 
 # Configure logging
@@ -65,6 +65,7 @@ app.add_middleware(
 app.include_router(shots.router)
 app.include_router(stats.router)
 app.include_router(devices.router)
+app.include_router(keeper.router)
 
 
 @app.get("/health", tags=["system"])

@@ -1,5 +1,6 @@
 """MQTT subscriber service connecting to Mosquitto."""
 
+import json
 import logging
 import re
 import threading
@@ -8,11 +9,12 @@ import paho.mqtt.client as mqtt
 
 from app.config import settings
 from app.database import SessionLocal
-from app.services import record_shot, record_device_status
+from app.services import record_shot, record_device_status, record_keeper_event
 from app.validation import (
     MessageValidationError,
     parse_and_validate_shot,
     parse_and_validate_status,
+    parse_and_validate_keeper_event,
 )
 from app.metrics import (
     record_mqtt_message,
@@ -97,7 +99,22 @@ class MQTTService:
         logger.warning("Received message on unhandled topic: %s", topic)
 
     def _handle_event_message(self, topic_device_id: str, payload: bytes):
-        """Validate and persist shot event with deduplication."""
+        """Validate and persist shot or keeper event with deduplication."""
+        # Detect whether this is a keeper event or a goal shot
+        event_type = "shot"
+        try:
+            raw_text = payload.decode("utf-8")
+            if raw_text.strip().startswith("{"):
+                parsed = json.loads(raw_text)
+                if isinstance(parsed, dict):
+                    event_type = parsed.get("event_type", "shot")
+        except Exception:
+            event_type = "shot"
+
+        if event_type == "keeper_motion" or "keeper" in topic_device_id.lower():
+            self._handle_keeper_message(topic_device_id, payload)
+            return
+
         record_mqtt_message("shot")
         try:
             shot_data = parse_and_validate_shot(payload)
@@ -131,6 +148,41 @@ class MQTTService:
             logger.exception("Database error while recording shot: %s", exc)
         finally:
             db.close()
+
+    def _handle_keeper_message(self, topic_device_id: str, payload: bytes):
+        """Validate and persist goalkeeper event with deduplication."""
+        record_mqtt_message("keeper")
+        try:
+            keeper_data = parse_and_validate_keeper_event(payload)
+        except MessageValidationError as exc:
+            record_processing_error("validation")
+            logger.warning(
+                "Invalid keeper message on topic for %s: %s",
+                topic_device_id,
+                exc.message,
+            )
+            return
+
+        if keeper_data.device_id != topic_device_id:
+            logger.warning(
+                "Mismatched device_id in keeper payload ('%s') vs topic ('%s')",
+                keeper_data.device_id,
+                topic_device_id,
+            )
+
+        db = SessionLocal()
+        try:
+            event, is_created = record_keeper_event(db, keeper_data)
+            if is_created:
+                logger.info("Keeper event %s recorded successfully from %s", event.event_id, event.device_id)
+            else:
+                logger.info("Duplicate keeper event %s skipped (SUR1)", event.event_id)
+        except Exception as exc:
+            record_processing_error("database")
+            logger.exception("Database error while recording keeper event: %s", exc)
+        finally:
+            db.close()
+
 
     def _handle_status_message(self, topic_device_id: str, payload: bytes):
         """Record status / heartbeat / Last Will from device."""

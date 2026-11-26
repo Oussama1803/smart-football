@@ -198,6 +198,20 @@
               <span>Dispositif : <code>keeper-esp32-01</code></span>
               <span>Statut : <span id="keeper-status-text">Non connecté (Étape 11)</span></span>
             </div>
+            <div id="keeper-telemetry" style="display: none; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.8rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Accélération (g) :</span>
+                <strong id="keeper-accel">X: 0.00 | Y: 0.00 | Z: 0.00</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Rotation (°/s) :</span>
+                <strong id="keeper-gyro">X: 0.0 | Y: 0.0 | Z: 0.0</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-muted);">Action détectée :</span>
+                <strong id="keeper-dive" style="color: var(--accent-color);">Position stable</strong>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -56,6 +56,8 @@ function setupAutoRefresh() {
       loadStats();
       loadShots();
       checkHealth();
+      loadDevices();
+      loadKeeperData();
     }, intervalMs);
   }
 }
@@ -66,6 +68,7 @@ function loadAllData() {
   loadStats();
   loadShots();
   loadDevices();
+  loadKeeperData();
 }
 
 /**
@@ -379,6 +382,49 @@ async function loadDevices() {
     console.error("Error loading devices:", err);
   }
 }
+
+/**
+ * Fetch and display latest goalkeeper MPU6050 telemetry (Étape 11).
+ */
+async function loadKeeperData() {
+  try {
+    const res = await fetch("/api/keeper/latest");
+    if (!res.ok) return;
+    const keeper = await res.json();
+    if (!keeper) return;
+
+    document.getElementById("keeper-badge").textContent = "Actif";
+    document.getElementById("keeper-badge").className = "badge badge-speed";
+    document.getElementById("keeper-status-text").textContent = `En ligne (v${escapeHtml(keeper.firmware_version)})`;
+
+    const telemEl = document.getElementById("keeper-telemetry");
+    if (telemEl) {
+      telemEl.style.display = "block";
+      const ax = typeof keeper.accel_x === "number" ? keeper.accel_x.toFixed(2) : "0.00";
+      const ay = typeof keeper.accel_y === "number" ? keeper.accel_y.toFixed(2) : "0.00";
+      const az = typeof keeper.accel_z === "number" ? keeper.accel_z.toFixed(2) : "0.00";
+      document.getElementById("keeper-accel").textContent = `X: ${ax} | Y: ${ay} | Z: ${az}`;
+
+      const gx = typeof keeper.gyro_x === "number" ? keeper.gyro_x.toFixed(1) : "0.0";
+      const gy = typeof keeper.gyro_y === "number" ? keeper.gyro_y.toFixed(1) : "0.0";
+      const gz = typeof keeper.gyro_z === "number" ? keeper.gyro_z.toFixed(1) : "0.0";
+      document.getElementById("keeper-gyro").textContent = `X: ${gx} | Y: ${gy} | Z: ${gz}`;
+
+      const diveMap = {
+        none: "Position stable",
+        left: "Plongeon gauche ⬅️",
+        right: "Plongeon droite ➡️",
+        jump: "Extension / Saut ⬆️",
+        dive: "Plongeon au sol ⬇️",
+      };
+      const directionText = diveMap[keeper.dive_direction] || keeper.dive_direction;
+      document.getElementById("keeper-dive").textContent = directionText;
+    }
+  } catch (err) {
+    console.debug("Keeper telemetry not yet available:", err);
+  }
+}
+
 
 function escapeHtml(text) {
   if (!text) return "";

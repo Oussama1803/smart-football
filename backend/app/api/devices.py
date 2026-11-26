@@ -6,7 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeviceStatus, Shot
+from app.models import DeviceStatus, Shot, KeeperEvent
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
@@ -19,15 +19,23 @@ def list_devices(db: Session = Depends(get_db)):
     """
     device_ids_from_shots = [d[0] for d in db.query(Shot.device_id).distinct().all()]
     device_ids_from_status = [d[0] for d in db.query(DeviceStatus.device_id).distinct().all()]
-    all_device_ids = sorted(list(set(device_ids_from_shots + device_ids_from_status)))
+    device_ids_from_keeper = [d[0] for d in db.query(KeeperEvent.device_id).distinct().all()]
+    all_device_ids = sorted(list(set(device_ids_from_shots + device_ids_from_status + device_ids_from_keeper)))
 
     devices_data = []
     for dev_id in all_device_ids:
         shot_count = db.query(Shot).filter(Shot.device_id == dev_id).count()
+        keeper_count = db.query(KeeperEvent).filter(KeeperEvent.device_id == dev_id).count()
         last_shot = (
             db.query(Shot)
             .filter(Shot.device_id == dev_id)
             .order_by(Shot.timestamp.desc())
+            .first()
+        )
+        last_keeper = (
+            db.query(KeeperEvent)
+            .filter(KeeperEvent.device_id == dev_id)
+            .order_by(KeeperEvent.timestamp.desc())
             .first()
         )
         last_status = (
@@ -37,27 +45,31 @@ def list_devices(db: Session = Depends(get_db)):
             .first()
         )
 
-        last_seen = None
-        if last_status and last_shot:
-            last_seen = max(
-                last_status.received_at,
-                last_shot.received_at or last_shot.timestamp,
-            )
-        elif last_status:
-            last_seen = last_status.received_at
-        elif last_shot:
-            last_seen = last_shot.received_at or last_shot.timestamp
+        seen_candidates = []
+        if last_status:
+            seen_candidates.append(last_status.received_at)
+        if last_shot:
+            seen_candidates.append(last_shot.received_at or last_shot.timestamp)
+        if last_keeper:
+            seen_candidates.append(last_keeper.received_at or last_keeper.timestamp)
+
+        last_seen = max(seen_candidates) if seen_candidates else None
+
+        fw_version = None
+        if last_status and last_status.firmware_version:
+            fw_version = last_status.firmware_version
+        elif last_shot and last_shot.firmware_version:
+            fw_version = last_shot.firmware_version
+        elif last_keeper and last_keeper.firmware_version:
+            fw_version = last_keeper.firmware_version
 
         devices_data.append(
             {
                 "device_id": dev_id,
                 "shot_count": shot_count,
+                "keeper_event_count": keeper_count,
                 "status": last_status.status if last_status else "active",
-                "firmware_version": (
-                    last_status.firmware_version
-                    if last_status and last_status.firmware_version
-                    else (last_shot.firmware_version if last_shot else None)
-                ),
+                "firmware_version": fw_version,
                 "last_seen": last_seen,
             }
         )

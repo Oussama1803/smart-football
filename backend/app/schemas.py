@@ -151,3 +151,56 @@ class IngestionResult(BaseModel):
     status: str  # "created" or "duplicate_ignored"
     event_id: str
     message: str
+
+
+class KeeperEventBase(BaseModel):
+    """Base schema for goalkeeper MPU6050 telemetry events (Étape 11)."""
+
+    event_id: str = Field(..., description="Unique UUID identifier for the keeper event")
+    device_id: str = Field(..., min_length=1, description="Identifier of the emitting keeper ESP32 device")
+    session_id: str = Field(..., min_length=1, description="Training session identifier")
+    event_type: str = Field(default="keeper_motion", description="Type of event ('keeper_motion')")
+    timestamp: datetime = Field(..., description="ISO 8601 timestamp of when the motion was recorded")
+    accel_x: float = Field(..., description="Acceleration X in g (+/- 2g range)")
+    accel_y: float = Field(..., description="Acceleration Y in g (+/- 2g range)")
+    accel_z: float = Field(..., description="Acceleration Z in g (+/- 2g range)")
+    gyro_x: float = Field(..., description="Angular velocity X in deg/s (+/- 250 dps)")
+    gyro_y: float = Field(..., description="Angular velocity Y in deg/s (+/- 250 dps)")
+    gyro_z: float = Field(..., description="Angular velocity Z in deg/s (+/- 250 dps)")
+    dive_direction: str = Field(
+        default="none",
+        description="Detected motion/dive direction: none, left, right, jump, dive",
+    )
+    firmware_version: str = Field(..., min_length=1, description="Keeper ESP32 firmware version")
+
+    @field_validator("dive_direction")
+    @classmethod
+    def validate_dive(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        allowed = {"none", "left", "right", "jump", "dive"}
+        if cleaned not in allowed:
+            raise ValueError(f"dive_direction must be one of {allowed}, got '{value}'")
+        return cleaned
+
+
+class KeeperEventCreate(KeeperEventBase):
+    """Schema for creating a keeper event from MQTT or HTTP."""
+    pass
+
+
+class KeeperEventResponse(KeeperEventBase):
+    """Schema for returning keeper events via API."""
+
+    id: int
+    received_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class KeeperIngestionResult(BaseModel):
+    """Result of keeper event ingestion."""
+
+    status: str  # "created" or "duplicate_ignored"
+    event_id: str
+    message: str
+

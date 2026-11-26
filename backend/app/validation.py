@@ -5,7 +5,7 @@ import logging
 from typing import Any, Dict, Tuple
 from pydantic import ValidationError
 
-from app.schemas import ShotCreate, DeviceStatusCreate
+from app.schemas import ShotCreate, DeviceStatusCreate, KeeperEventCreate
 
 logger = logging.getLogger(__name__)
 
@@ -77,3 +77,36 @@ def parse_and_validate_status(payload: bytes | str | dict, device_id_from_topic:
         timestamp=data.get("timestamp"),
         payload=json.dumps(data) if isinstance(data, dict) else str(data),
     )
+
+
+def parse_and_validate_keeper_event(payload: bytes | str | dict) -> KeeperEventCreate:
+    """Parse JSON and validate goalkeeper MPU6050 motion structure."""
+    if isinstance(payload, (bytes, bytearray)):
+        try:
+            payload_str = payload.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise MessageValidationError(f"Payload is not valid UTF-8: {exc}") from exc
+        try:
+            data = json.loads(payload_str)
+        except json.JSONDecodeError as exc:
+            raise MessageValidationError(f"Payload is not valid JSON: {exc}") from exc
+    elif isinstance(payload, str):
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise MessageValidationError(f"Payload is not valid JSON: {exc}") from exc
+    elif isinstance(payload, dict):
+        data = payload
+    else:
+        raise MessageValidationError(f"Unsupported payload type: {type(payload)}")
+
+    if not isinstance(data, dict):
+        raise MessageValidationError(f"JSON payload must be an object, got {type(data).__name__}")
+
+    try:
+        event = KeeperEventCreate(**data)
+        return event
+    except ValidationError as exc:
+        errors = "; ".join(f"{err['loc']}: {err['msg']}" for err in exc.errors())
+        raise MessageValidationError(f"Keeper validation failed: {errors}", raw_payload=data) from exc
+

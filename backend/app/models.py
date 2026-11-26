@@ -54,3 +54,33 @@ class DeviceStatus(Base):
     payload = Column(Text, nullable=True)
     timestamp = Column(DateTime(timezone=True), nullable=True)
     received_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class KeeperEvent(Base):
+    """Database model for goalkeeper MPU6050 motion and dive telemetry (Étape 11)."""
+
+    __tablename__ = "keeper_events"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    event_id = Column(String(64), unique=True, index=True, nullable=False)
+    device_id = Column(String(64), index=True, nullable=False)
+    session_id = Column(String(64), index=True, nullable=False)
+    event_type = Column(String(32), default="keeper_motion", nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False)
+    # Accelerations in g (+/- 2g range)
+    accel_x = Column(Float, nullable=False)
+    accel_y = Column(Float, nullable=False)
+    accel_z = Column(Float, nullable=False)
+    # Angular velocity in deg/s (+/- 250 dps range)
+    gyro_x = Column(Float, nullable=False)
+    gyro_y = Column(Float, nullable=False)
+    gyro_z = Column(Float, nullable=False)
+    # Inferred or reported action: none, left, right, jump, dive
+    dive_direction = Column(String(32), default="none", nullable=False)
+    firmware_version = Column(String(32), nullable=False)
+    received_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_keeper_session_timestamp", "session_id", "timestamp"),
+        Index("idx_keeper_device_timestamp", "device_id", "timestamp"),
+    )

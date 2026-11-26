@@ -20,8 +20,10 @@ import urllib.error
 
 # Specification constants
 DEFAULT_DEVICE_ID = "goal-esp32-01"
+DEFAULT_KEEPER_ID = "keeper-esp32-01"
 DEFAULT_SESSION_ID = "session-001"
 DEFAULT_TOPIC = f"smartfootball/{DEFAULT_DEVICE_ID}/events"
+KEEPER_TOPIC = f"smartfootball/{DEFAULT_KEEPER_ID}/events"
 ZONES = ["upper_left", "upper_right", "lower_left", "lower_right", "none"]
 
 
@@ -61,6 +63,56 @@ def generate_shot(
     }
 
 
+def generate_keeper_event(
+    device_id: str = DEFAULT_KEEPER_ID,
+    session_id: str = DEFAULT_SESSION_ID,
+    dive_direction: str = None,
+    event_id: str = None,
+) -> dict:
+    """Generate a specification-compliant goalkeeper MPU6050 motion message."""
+    directions = ["none", "left", "right", "jump", "dive"]
+    if dive_direction is None:
+        dive_direction = random.choice(directions)
+
+    if dive_direction == "left":
+        ax, ay, az = -1.25, 0.45, 0.15
+        gx, gy, gz = 14.0, -8.0, -85.0
+    elif dive_direction == "right":
+        ax, ay, az = 1.30, 0.35, 0.10
+        gx, gy, gz = -12.0, 7.5, 92.0
+    elif dive_direction == "jump":
+        ax, ay, az = 0.10, 1.65, 0.25
+        gx, gy, gz = 4.0, 2.0, -3.0
+    elif dive_direction == "dive":
+        ax, ay, az = 0.20, -1.35, -0.50
+        gx, gy, gz = -20.0, -12.0, 8.0
+    else:  # none
+        ax = round(random.uniform(-0.05, 0.05), 2)
+        ay = round(random.uniform(-0.05, 0.05), 2)
+        az = 1.00
+        gx = round(random.uniform(-1.0, 1.0), 1)
+        gy = round(random.uniform(-1.0, 1.0), 1)
+        gz = round(random.uniform(-1.0, 1.0), 1)
+
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "event_id": event_id or str(uuid.uuid4()),
+        "device_id": device_id,
+        "session_id": session_id,
+        "event_type": "keeper_motion",
+        "timestamp": now_iso,
+        "accel_x": ax,
+        "accel_y": ay,
+        "accel_z": az,
+        "gyro_x": gx,
+        "gyro_y": gy,
+        "gyro_z": gz,
+        "dive_direction": dive_direction,
+        "firmware_version": "0.1.0",
+    }
+
+
+
 def publish_mqtt(broker_host: str, broker_port: int, topic: str, payload: dict) -> bool:
     """Publish a shot message to Mosquitto broker via MQTT QoS 1."""
     try:
@@ -94,9 +146,30 @@ def post_http(api_url: str, payload: dict) -> dict:
         return {"error": exc.code, "message": exc.read().decode("utf-8")}
 
 
+def post_http_keeper(api_url: str, payload: dict) -> dict:
+    """Send keeper event via HTTP POST /api/keeper/events."""
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        f"{api_url.rstrip('/')}/api/keeper/events",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return {"error": exc.code, "message": exc.read().decode("utf-8")}
+
+
+
 def main():
     parser = argparse.ArgumentParser(description="Smart Football Shot Simulator")
-    parser.add_argument("--mode", choices=["single", "burst", "sur1-test", "sec2-test", "seed-demo"], default="single")
+    parser.add_argument(
+        "--mode",
+        choices=["single", "burst", "sur1-test", "sec2-test", "seed-demo", "keeper", "keeper-demo"],
+        default="single",
+    )
     parser.add_argument("--mqtt", action="store_true", help="Send via MQTT broker")
     parser.add_argument("--broker", default="localhost", help="Mosquitto broker host")
     parser.add_argument("--port", type=int, default=1883, help="Mosquitto broker port")
@@ -167,6 +240,32 @@ def main():
                 post_http(args.api, shot)
             time.sleep(0.05)
         print("Demo data seeded successfully!")
+
+    elif args.mode == "keeper":
+        event = generate_keeper_event(session_id=args.session)
+        print(f"Generated keeper event: {json.dumps(event, indent=2)}")
+        if args.mqtt:
+            print(f"Publishing to MQTT {args.broker}:{args.port} on topic {KEEPER_TOPIC}...")
+            ok = publish_mqtt(args.broker, args.port, KEEPER_TOPIC, event)
+            print("MQTT Publish OK" if ok else "MQTT Publish Failed")
+        else:
+            print(f"Sending via HTTP POST to {args.api}/api/keeper/events...")
+            res = post_http_keeper(args.api, event)
+            print(f"Response: {res}")
+
+    elif args.mode == "keeper-demo":
+        print("Seeding goalkeeper motions (standing, dives left/right, jumps)...")
+        directions = ["none", "left", "right", "jump", "dive"]
+        for d in directions:
+            event = generate_keeper_event(session_id=args.session, dive_direction=d)
+            if args.mqtt:
+                publish_mqtt(args.broker, args.port, KEEPER_TOPIC, event)
+            else:
+                post_http_keeper(args.api, event)
+            print(f"  Keeper action sent: {d} (accel=[{event['accel_x']}, {event['accel_y']}, {event['accel_z']}])")
+            time.sleep(0.1)
+        print("Goalkeeper demo telemetry seeded successfully!")
+
 
 
 if __name__ == "__main__":
