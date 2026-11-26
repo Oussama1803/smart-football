@@ -65,7 +65,6 @@ function loadAllData() {
   loadSessions();
   loadStats();
   loadShots();
-  loadDevices();
 }
 
 /**
@@ -358,26 +357,6 @@ function renderComparisonBox(prefix, session) {
   document.getElementById(`comp-${prefix}-acc`).textContent = `${session.accuracy_rate_pct}%`;
   document.getElementById(`comp-${prefix}-spd`).textContent = `${session.avg_speed_kmh} km/h (max ${session.max_speed_kmh})`;
   document.getElementById(`comp-${prefix}-pres`).textContent = `${Math.round(session.avg_pressure_reading)} ADC`;
-}
-
-/**
- * Check devices and keeper status.
- */
-async function loadDevices() {
-  try {
-    const res = await fetch("/api/devices");
-    if (!res.ok) return;
-    const devices = await res.json();
-
-    const keeper = devices.find((d) => d.device_id.includes("keeper"));
-    if (keeper) {
-      document.getElementById("keeper-badge").textContent = keeper.status;
-      document.getElementById("keeper-badge").className = "badge badge-speed";
-      document.getElementById("keeper-status-text").textContent = `Connecté (${keeper.status})`;
-    }
-  } catch (err) {
-    console.error("Error loading devices:", err);
-  }
 }
 
 function escapeHtml(text) {

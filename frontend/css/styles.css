@@ -396,15 +396,6 @@ button.primary:hover {
   font-size: 0.85rem;
 }
 
-/* Keeper Module Card */
-.keeper-status-box {
-  background: #0f172a;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 10px;
-}
-
 /* Table styles */
 .table-responsive {
   width: 100%;

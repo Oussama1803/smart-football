@@ -1,6 +1,6 @@
 # Tableau de bord télémétrique Smart Football (Étape 6)
 
-Ce composant fournit l'interface visuelle temps réel pour visualiser les tirs, analyser les performances des joueurs, comparer les séances d'entraînement et superviser les dispositifs connectés (ESP32 du but et extension gardien).
+Ce composant fournit l'interface visuelle temps réel pour visualiser les tirs, analyser les performances des joueurs, comparer les séances d'entraînement et superviser les dispositifs connectés (ESP32 du but).
 
 ---
 
@@ -60,10 +60,7 @@ Le haut de l'interface affiche les métriques synthétiques globales ou filtrée
 - Deux menus déroulants permettent de choisir deux séances distinctes (ex. `session-001` vs `session-002`).
 - Affichage comparatif côte à côte avec différentiels automatiques (gain ou perte de vitesse, amélioration du taux de précision cadré, volume de tirs).
 
-### 3.5 Extension Gardien de but (`keeper-esp32-01`)
-- Carte de supervision spécifique affichant la disponibilité et l'activité du boîtier gardien équipé de la centrale inertielle MPU6050 (accéléromètre et gyroscope 6 axes).
-
-### 3.6 Transparence et intégrité de la donnée
+### 3.5 Transparence et intégrité de la donnée
 Le tableau de bord applique rigoureusement la règle du projet distinguant les types de données via un badge et des infobulles explicites :
 - 🟢 **Mesure réelle** : vitesse calculée par les barrières IR ($v = D / \Delta t$) et zone d'impact piézo.
 - 🟡 **Valeur brute ADC relative** : pression FSR et intensité piézo (exprimées en unités brutes relatives [0-4095], jamais en Newtons).
