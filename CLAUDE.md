@@ -44,14 +44,14 @@ Testé par Oussama sur son PC le 26 novembre : pile complète + supervision sous
 
 PR #22 de Mohamed fusionnée le 26 novembre : comptes MQTT, ACL, TLS sur 8883, 1883 non publié, HTTPS sur 443, T1, T2, T5 et T6 réussis en local. Conséquences chez Oussama : la sonde du tableau de bord passe en HTTPS (fait), le collecteur Mosquitto a besoin d'un compte `monitor` en lecture de `$SYS/#` (à demander à Mohamed), et le simulateur d'Alae doit passer en TLS (plan B de la démo).
 
-Étape 12b : déroulé dans `docs/demo.md`, avec un plan A (VPS) et un plan B (tout en local, simulateur à la place de l'ESP32).
+Décision d'Oussama du 26 novembre : **pas de VPS, démo en local**. Testé le 26 sur son PC avec le 8a activé : compte `monitor` ajouté à l'ACL (PR directe sur main), Grafana revoit le broker, heartbeat en TLS avec le compte de l'ESP32 visible (appareil en ligne), `monitor` ne lit pas les tirs, ports après 8a = 80, 443, 8883. Récapitulatif pour le prof : `docs/partie-oussama.md`. Déroulé de la démo réécrit pour le local : `docs/demo.md` (les commandes du tir en TLS et du point 10 ne sont pas encore lancées).
 
 Les invitations GitHub de Saad, Alae et Mohamed étaient en attente le 22 novembre. Tant qu'elles ne sont pas acceptées, on ne peut pas leur assigner d'issues.
 
 ## Prochaines actions pour la partie d'Oussama
 
 1. Étape 8b : rôles de l'API, droits MQTT, utilisateur de base à privilèges minimaux, UFW sur le VPS, sauvegardes, tests T1 à T8 avec captures. Dépend du `compose.yaml` et de l'API d'Alae (pas encore là).
-2. Étape 10 : faite en local. Reste : lancer sur le VPS, compte MQTT `monitor` avec Mohamed, `/metrics` backend avec Alae.
+2. Étape 10 : faite et testée en local avec le 8a.
 3. Étape 12b : la démo des 10 points seulement, pas de rapport (décision d'Oussama, 25 novembre). Avant la démo, l'étape 12a (tests d'ensemble). À la fin, Oussama veut une page interactive de l'architecture (pas avant).
 4. `docs/rbac.md` écrit : faire valider le tableau des droits et transmettre la partie 8 à Alae et Mohamed.
 

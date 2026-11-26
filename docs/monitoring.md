@@ -80,13 +80,6 @@ Pas encore testé :
 
 ## Ce qui dépend des autres
 
-Pour Mohamed (étape 8a) : quand l'accès anonyme sera coupé, le mosquitto-exporter aura besoin d'un compte en lecture seule sur `$SYS/#`. Il se connecte au port interne 1883, dans le réseau Docker. Proposition d'ACL :
-
-```text
-user monitor
-topic read $SYS/#
-```
-
-Les identifiants vont dans `.env` (`MQTT_MONITOR_USER`, `MQTT_MONITOR_PASSWORD`).
+Compte `monitor` : fait le 26 novembre. Il est dans `infra/mosquitto/acl` (lecture de `$SYS/#` seulement), et chacun doit le créer dans son fichier `passwords` local (`mosquitto_passwd -b /work/passwords monitor <mdp>`), avec `MQTT_MONITOR_USER=monitor` et `MQTT_MONITOR_PASSWORD` dans `.env`. Testé : Grafana voit le broker, et `monitor` ne reçoit pas les messages des appareils.
 
 Pour Alae : fait le 26 novembre (PR #21). Le backend expose `/metrics` (`backend/app/metrics.py`), et Prometheus le lit dans le réseau Docker (job `backend`). Nginx ne l'expose pas.

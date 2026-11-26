@@ -2,85 +2,128 @@
 
 Les 10 points du cahier des charges, dans l'ordre où on les montre, avec qui fait quoi et ce qu'on voit à l'écran. Durée visée : 10 à 12 minutes.
 
-Deux plans :
-- **Plan A** : le VPS est en ligne avec le broker sécurisé. Toute la chaîne est réelle, de Wokwi jusqu'à Grafana.
-- **Plan B** : pas de VPS. Les points 1 à 4 se font dans Wokwi, et les points 5 à 9 en local sur le PC d'Oussama, avec le simulateur de tirs d'Alae à la place de l'ESP32. Il faut le dire au jury : la passerelle privée de Wokwi est payante, donc l'ESP32 simulé ne peut pas joindre un broker installé sur un PC.
+**Décision du 26 novembre : la démo se fait en local, sans VPS.** La pile Docker complète (Mosquitto avec TLS et ACL, backend, PostgreSQL, Nginx en HTTPS, Prometheus et Grafana) tourne sur le PC d'Oussama.
+
+L'ESP32 simulé dans Wokwi ne peut joindre qu'un serveur accessible sur Internet. La passerelle privée de Wokwi, qui permettrait d'atteindre un PC, est payante. Donc :
+
+- les points 1 à 4 se montrent dans Wokwi (moniteur série) ;
+- les points 5 à 9 se montrent sur la pile locale. Les messages sont publiés avec le vrai compte de l'ESP32 (`goal-esp32-01`), en TLS sur le port 8883, depuis le conteneur Mosquitto.
+
+Il faut le dire au jury : le VPS du cahier est remplacé par la même pile en local, déployable telle quelle (`docs/deployment-vps.md`).
 
 ## Écrans à ouvrir avant de commencer
 
-| Fenêtre | Plan A | Plan B |
-|---|---|---|
-| Wokwi (VS Code), moniteur série visible | oui | oui |
-| Tableau de bord | `https://<VPS>/` | http://localhost/ |
-| Grafana, tableau « Smart Football : supervision » | http://localhost:3000 par tunnel SSH | http://localhost:3000 |
-| Terminal pour le point 10 | oui | oui |
+| Fenêtre | Adresse ou commande |
+|---|---|
+| Wokwi (VS Code), banc `firmware/wokwi-test`, moniteur série visible | Saad |
+| Tableau de bord | https://localhost (accepter l'avertissement : certificat de notre propre CA) |
+| Grafana, tableau « Smart Football : supervision », période « Last 15 minutes » | http://localhost:3000 |
+| Alertes de Prometheus | http://localhost:9090/alerts |
+| Deux fenêtres PowerShell dans `infra/`, avec le mot de passe de l'ESP32 chargé (ci-dessous) | Oussama |
+
+Charger le mot de passe sans l'afficher, dans chaque fenêtre PowerShell :
+
+```text
+$de = (Select-String '^MQTT_DEVICE_PASSWORD=' .env).Line.Split('=',2)[1].Trim()
+```
+
+Ne jamais ouvrir `.env`, `passwords` ni `secrets.h` à l'écran.
 
 ## Les 10 points
 
 | # | Point | Qui | Ce qu'on fait | Ce qu'on montre |
 |---|---|---|---|---|
-| 1 | Un tir | Saad | Dans Wokwi, banc `firmware/wokwi-test`, scénario 1 (`upper_right`), on passe « Run shot » de 0 à 1 | Le JSON `"event_type": "shot"` dans le moniteur série |
-| 2 | Pression FSR | Saad | Même tir | `pressure_reading` dans le JSON. On précise que c'est une valeur ADC brute, pas des newtons. |
-| 3 | Vitesse par les barrières IR | Saad | Même tir | `ball_speed_kmh` vaut environ 72 : 20 cm parcourus en 10 ms |
-| 4 | Zone par les piézos | Saad | On rejoue avec le scénario 4 (aucun impact) puis le scénario 5 (deux impacts simultanés) | `target_zone` change, et la LED de la zone touchée s'allume |
-| 5 | Envoi MQTT sécurisé | Mohamed | Plan A : le tir part vers le VPS sur le port 8883 | Plan A : la ligne « connected » du firmware et le log Mosquitto. Plan B : le simulateur publie en local, sans TLS (on le dit). |
-| 6 | Validation par le backend | Alae | Mode `sec2-test` du simulateur : un tir à 3 km/h et un tir hors limite haute (la règle accepte de 5 à 150 km/h) | L'API refuse les deux tirs, et rien n'arrive en base |
-| 7 | Enregistrement dans PostgreSQL | Alae | Après un tir valide | La ligne du tir dans `GET /api/shots`, avec le même `event_id` |
-| 8 | Affichage dans le tableau de bord | Alae | Rafraîchir le tableau de bord | Le tir dans l'historique et la heatmap du but |
-| 9 | Métriques dans Grafana | Oussama | On arrête la simulation | En 2 à 3 minutes, « Messages MQTT reçus » et « Appareils connectés » passent au rouge, et l'alerte `NoDeviceTraffic` se déclenche |
-| 10 | Refus d'un accès MQTT non autorisé | Oussama | Publication sans mot de passe, puis sur le topic d'un autre appareil | « Connection Refused: not authorised », puis rien n'arrive chez l'abonné ni en base |
+| 1 | Un tir | Saad | Wokwi, banc `firmware/wokwi-test`, scénario 1 (`upper_right`), « Run shot » de 0 à 1 | Le JSON `"event_type": "shot"` dans le moniteur série |
+| 2 | Pression FSR | Saad | Même tir | `pressure_reading` : valeur ADC brute, pas des newtons |
+| 3 | Vitesse par les barrières IR | Saad | Même tir | `ball_speed_kmh` d'environ 72 : 20 cm en 10 ms |
+| 4 | Zone par les piézos | Saad | Scénarios 4 (aucun impact) et 5 (impacts simultanés) | `target_zone` change, et la LED de la zone touchée s'allume |
+| 5 | Envoi MQTT sécurisé | Oussama, Mohamed | Commande « Points 5 à 8 » ci-dessous : un tir au format du cahier, publié en TLS (8883), avec le compte `goal-esp32-01` | La commande réussit avec le certificat de la CA et le compte de l'appareil |
+| 6 | Validation par le backend | Alae | Mode `sec2-test` du simulateur (vitesses hors limites), et un message qui n'est pas du JSON | Les tirs sont refusés, et « Erreurs de traitement » passe à l'orange dans Grafana |
+| 7 | Enregistrement dans PostgreSQL | Alae | Après le tir du point 5 | `https://localhost/api/shots?session_id=session-demo` montre le tir, avec le même `event_id` |
+| 8 | Affichage dans le tableau de bord | Alae | Séance `session-demo` dans le tableau de bord | Le tir dans l'historique et la heatmap du but |
+| 9 | Métriques dans Grafana | Oussama | Heartbeat de l'appareil pendant 2 minutes, puis arrêt | Vert pendant l'envoi (messages, appareil en ligne), puis rouge et alerte `NoDeviceTraffic` |
+| 10 | Refus d'un accès MQTT non autorisé | Mohamed, Oussama | Publication sans compte, puis sur le topic d'un autre appareil | « Connection Refused: not authorised », puis le refus de l'ACL |
 
-Point 9 : la baisse prend 2 à 3 minutes. On arrête donc la simulation juste après le point 8, puis on fait le point 10 pendant l'attente, avant de revenir sur Grafana.
+Point 9 : la baisse prend 2 à 3 minutes. On lance le heartbeat dès le début de la démo de la plateforme, puis on l'arrête juste avant le point 10. On revient sur Grafana après le point 10.
 
-## Commandes
+## Commandes (depuis `infra/`, PowerShell)
 
-### Plan B : lancer la pile sur le PC d'Oussama
-
-Depuis `infra` (voir `docs/monitoring.md` pour le fichier `.env`) :
+### Avant : la pile tourne
 
 ```text
 docker compose -f compose.yaml -f compose.monitoring.yaml up -d
+docker ps --format "table {{.Names}}\t{{.Ports}}"
 ```
 
-### Points 5 à 8 : simuler des tirs (plan B)
+Dans Grafana, « Broker allumé depuis » doit afficher une durée. Si c'est « No data » : `docker restart smartfootball-mosquitto-exporter`.
 
-Depuis l'étape 8a (PR #22, 26 novembre), le broker refuse les connexions sans compte, et le port 1883 n'est plus publié. Les commandes ci-dessous ne marchent donc plus telles quelles : il faut d'abord adapter `simulate_shots.py` au TLS (port 8883, `ca.crt`) avec un compte dédié, créé par Mohamed (travail d'Alae). En attendant, on peut publier un tir valide comme dans le test « tir légitime » de Mohamed (`docs/securite-mqtt.md`, captures `tir-legitime-*.png`).
+### Points 5 à 8 : un tir publié en TLS avec le compte de l'ESP32
 
-Depuis la racine du dépôt (il faut `pip install paho-mqtt` une seule fois) :
+Le JSON passe par un fichier, pour éviter les problèmes de guillemets de PowerShell. L'`event_id` change à chaque lancement (sinon, le backend ignore le doublon).
 
 ```text
-python scripts/simulate_shots.py --mqtt --broker localhost --port 1883 --mode seed-demo --count 15
-python scripts/simulate_shots.py --mode sec2-test --api http://localhost:8000
+$id = "demo-" + (Get-Date -Format "HHmmss")
+$ts = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
+$shot = '{"event_id":"' + $id + '","device_id":"goal-esp32-01","session_id":"session-demo","event_type":"shot","timestamp":"' + $ts + '","ball_speed_kmh":72.0,"pressure_reading":640,"target_zone":"upper_right","impact_intensity":845,"firmware_version":"0.1.0"}'
+Set-Content -Encoding ascii -NoNewline shot.json $shot
+docker cp shot.json smartfootball-mosquitto:/tmp/shot.json
+docker exec smartfootball-mosquitto mosquitto_pub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -u goal-esp32-01 -P $de -q 1 -t smartfootball/goal-esp32-01/events -f /tmp/shot.json
+Remove-Item shot.json
 ```
 
-La première commande publie 15 tirs par MQTT, répartis sur deux séances, pour remplir le tableau de bord. La seconde envoie en HTTP, directement à l'API, des tirs dont la vitesse sort des limites. Le refus s'affiche dans le terminal (point 6). En plan A, remplacer `localhost` par l'adresse du VPS.
+Ce tir est une donnée de démonstration, avec les valeurs de l'exemple du README (72 km/h, `upper_right`), pas une mesure de Wokwi.
+
+### Point 6 : validation
+
+```text
+python ..\scripts\simulate_shots.py --mode sec2-test --api http://localhost:8000
+for ($i=0; $i -lt 5; $i++) { docker exec smartfootball-mosquitto mosquitto_pub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -u goal-esp32-01 -P $de -t smartfootball/goal-esp32-01/events -m pasdujson; Start-Sleep 2 }
+```
+
+La première commande envoie en HTTP des tirs à 3 km/h et hors limite haute, et l'API les refuse. La seconde publie en MQTT des messages qui ne sont pas du JSON. Ils sont refusés et comptés dans « Erreurs de traitement ».
+
+### Point 9 : heartbeat de l'appareil (2 minutes)
+
+```text
+for ($i=0; $i -lt 12; $i++) { docker exec smartfootball-mosquitto mosquitto_pub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -u goal-esp32-01 -P $de -t smartfootball/goal-esp32-01/status -m heartbeat; Start-Sleep 10 }
+```
 
 ### Point 10 : accès refusé
 
-Plan A, depuis n'importe quel PC (le fichier `ca.crt` vient de Mohamed) :
+Sans compte :
 
 ```text
-mosquitto_pub -h <VPS> -p 8883 --cafile ca.crt -t smartfootball/goal-esp32-01/events -m test
+docker exec smartfootball-mosquitto mosquitto_pub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -t smartfootball/goal-esp32-01/events -m test
 ```
 
-Attendu : « Connection Refused: not authorised ». Ensuite, avec le compte de `goal-esp32-01`, on publie sur `smartfootball/autre-appareil/events`. Le client ne signale aucune erreur (c'est normal en MQTT 3.1.1), mais l'abonné du backend ne reçoit rien. Pour les commandes exactes, voir les tests T1 et T2 dans `docs/security-tests.md`.
+Attendu : `Connection Refused: not authorised`.
 
-Plan B : sur `main`, Mosquitto accepte encore les connexions anonymes. Le point 10 ne se démontre donc pas tant que l'étape 8a (Mohamed) n'est pas appliquée. Pour montrer quand même le mécanisme, on peut utiliser l'ACL testée en local, décrite dans `docs/rbac.md`, partie 6.
+Avec le compte de l'ESP32, sur le topic d'un autre appareil (MQTT v5, pour voir le code de refus) :
 
-## Checklist la veille
+```text
+docker exec smartfootball-mosquitto mosquitto_pub -V mqttv5 -d -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt -u goal-esp32-01 -P $de -q 1 -t smartfootball/autre-appareil/events -m test
+```
 
-- [ ] Plan A ou B décidé (le VPS répond-il ?)
-- [ ] `pio run -e esp32dev` passe, et le banc `firmware/wokwi-test` émet un tir pour les scénarios 1, 4 et 5
-- [ ] Pile Docker lancée, 9 conteneurs « Up », tableau Grafana avec l'API, le site et le broker au vert
-- [ ] `.env` rempli. Aucun secret affiché à l'écran pendant la démo : ne pas ouvrir `.env` ni `secrets.h` devant le jury.
-- [ ] Tableau de bord vidé ou rempli exprès (le mode `seed-demo` ajoute 15 tirs)
+Attendu : un `PUBACK` avec le code 135 (Not authorized). En MQTT 3.1.1, le refus est silencieux pour le client : c'est l'abonné et la base qui prouvent que rien n'est passé (test T2 de Mohamed).
+
+## Ce qui a été testé, et ce qui ne l'a pas été
+
+- Testé sur le PC d'Oussama le 26 novembre : la pile avec le 8a, le heartbeat en TLS avec le compte de l'ESP32 (appareil « en ligne » dans Grafana), les messages non JSON comptés en erreurs, le compte `monitor`, `sf_backup` refusé sur `DELETE`, les ports.
+- **Pas encore lancées** : la commande du tir des points 5 à 8, et les deux commandes du point 10 depuis le conteneur. À essayer pendant la répétition.
+
+## Checklist avant la démo
+
+- [ ] Pile lancée, « Broker allumé depuis » avec une durée dans Grafana
+- [ ] Banc `firmware/wokwi-test` : un tir pour les scénarios 1, 4 et 5
+- [ ] Mot de passe chargé dans les fenêtres PowerShell (`$de`), `.env` jamais ouvert à l'écran
 - [ ] Une répétition complète, chronométrée
-- [ ] Captures de secours de chaque point dans `docs/captures/`, au cas où une partie ne répond pas le jour J
+- [ ] Captures de secours de chaque point dans `docs/captures/`
 
 ## Ce qu'il faut dire au jury, sans attendre qu'il le demande
 
 - `pressure_reading` et `impact_intensity` sont des valeurs ADC brutes, pas des forces.
 - Le FSR est lu au passage de la barrière 2, pas à la frappe exacte.
-- Un tir sans impact est publié avec `target_zone = "none"` et `impact_intensity = 0`. Ce n'est pas dans le format du cahier des charges, on l'a ajouté pour calculer le taux de précision.
-- Pas traité : le risque M5 (firmware modifié par OTA).
-- Si on est en plan B, tout ce qui n'a pas pu être montré de bout en bout, et pourquoi.
+- Un tir sans impact est publié avec `target_zone = "none"` et `impact_intensity = 0`. Ce n'est pas dans le format du cahier, on l'a ajouté pour calculer le taux de précision.
+- Les tirs du tableau de bord sont des données de démonstration (simulateur et commande ci-dessus), pas des mesures de Wokwi.
+- Pas de VPS : la même pile tourne en local (raison : la passerelle privée de Wokwi est payante).
+- Pas encore fait : la connexion et les rôles dans l'API (tests T3 et T7), le module gardien publié en MQTT (extension), et le risque M5 (firmware modifié par OTA).
