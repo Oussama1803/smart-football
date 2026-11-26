@@ -12,7 +12,7 @@ float speed_kmh_from_delta_us(uint32_t delta_us) {
   }
   const float delta_s = (float)delta_us / 1000000.0f;
   const float speed_m_s = BEAM_SPACING_M / delta_s;
-  return speed_m_s * 3.0f;
+  return speed_m_s * 3.6f;
 }
 
 SpeedStatus check_speed(float speed_kmh) {
